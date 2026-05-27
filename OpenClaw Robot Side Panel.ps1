@@ -1,13 +1,30 @@
 $ErrorActionPreference = "Stop"
 Set-Location -LiteralPath $PSScriptRoot
 
-$probeOutput = & openclaw.cmd gateway probe 2>&1
+$openclawPath = "openclaw.cmd"
+if (Get-Command "openclaw.cmd" -ErrorAction SilentlyContinue) {
+  $openclawPath = (Get-Command "openclaw.cmd").Source
+} else {
+  $possiblePaths = @(
+    "$env:APPDATA\npm\openclaw.cmd",
+    "$env:USERPROFILE\AppData\Roaming\npm\openclaw.cmd",
+    "C:\Users\$env:USERNAME\AppData\Roaming\npm\openclaw.cmd"
+  )
+  foreach ($p in $possiblePaths) {
+    if (Test-Path $p) {
+      $openclawPath = $p
+      break
+    }
+  }
+}
+
+$probeOutput = & $openclawPath gateway probe 2>&1
 if ($LASTEXITCODE -ne 0 -or ($probeOutput -join "`n") -match "EPERM|failed") {
-  Start-Process -FilePath "openclaw.cmd" -ArgumentList @("gateway", "run", "--force") -WindowStyle Minimized
+  Start-Process -FilePath $openclawPath -ArgumentList @("gateway", "run", "--force") -WindowStyle Minimized
   Start-Sleep -Seconds 12
 }
 
-$dashboardOutput = & openclaw.cmd dashboard --yes --no-open 2>&1
+$dashboardOutput = & $openclawPath dashboard --yes --no-open 2>&1
 $clipboard = Get-Clipboard -Raw -ErrorAction SilentlyContinue
 $joinedOutput = $dashboardOutput -join "`n"
 

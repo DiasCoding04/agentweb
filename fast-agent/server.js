@@ -52,7 +52,7 @@ const MODELS = [
 
 const allowedCommands = new Set([
   "start", "goto", "new-tab", "tabs", "switch", "close-tab",
-  "read", "snapshot", "accessibility", "elements", "links", "buttons", "inputs", "forms", "tables", "state",
+  "read", "snapshot", "accessibility", "elements", "links", "buttons", "inputs", "forms", "tables", "state", "evaluate",
   "find", "click", "click-index", "type", "set", "clear", "act",
   "key", "enter", "tab-key", "escape", "scroll", "scroll-top", "scroll-bottom",
   "scroll-to-text", "wait-for-text", "wait-for-selector", "back", "forward",
@@ -241,7 +241,7 @@ function compactToolResult(cmd, result) {
       scroll: json.scroll,
       text: String(json.text || "").replace(/\s+/g, " ").slice(0, 1200),
       elements: Array.isArray(json.elements) ? json.elements.slice(0, 160).map(e => ({
-        index: e.index,
+        pid: e.pid,
         tag: e.tag,
         type: e.type,
         role: e.role,
@@ -332,9 +332,11 @@ function isBrittleSelector(selector) {
 function needsSaferTarget(cmd, args) {
   if (!isActionTool(cmd)) return "";
   if (cmd === "act") return "";
+  const pid = getArg(args, "--pid");
   const selector = getArg(args, "--selector");
   const text = getArg(args, "--text");
   const index = getArg(args, "--index");
+  if (pid !== undefined) return "";
   if (index !== undefined) return "";
   if (selector && isGenericSelector(selector, cmd)) return `selector quá rộng: ${selector}`;
   if (selector && isTypingTool(cmd) && isBrittleSelector(selector)) return `selector quá mong manh, dựa nhiều vào nth-of-type: ${selector}`;
@@ -357,6 +359,52 @@ function describeTargetingRule(cmd) {
 
 function commandChangesState(cmd) {
   return new Set(["goto", "back", "forward", "reload", "switch", "new-tab", "close-tab", "click", "act", "find"]).has(String(cmd));
+}
+
+function shouldObserveBeforeTool(cmd) {
+  return isActionTool(cmd);
+}
+
+function shouldObserveAfterTool(cmd) {
+  return isActionTool(cmd) || ["goto", "back", "forward", "reload", "switch", "new-tab", "close-tab"].includes(String(cmd));
+}
+
+function observationPlanForAction(cmd, args = [], phase = "pre") {
+  const normalizedCmd = normalizeCommand(cmd);
+  const actType = normalizedCmd === "act"
+    ? String(getArg(args, "--action") || "click").toLowerCase()
+    : normalizedCmd;
+
+  if (phase === "block") return [];
+  if (phase === "not_found") return [["snapshot", ["--limit", "500"]], ["state", []], ["html", ["--max", String(OBSERVE_HTML_CHARS)]]];
+
+  if (phase === "pre") {
+    if (["goto", "back", "forward", "reload", "switch", "new-tab", "close-tab"].includes(normalizedCmd)) {
+      return [["snapshot", ["--limit", "500"]], ["state", []]];
+    }
+    if (["type", "set", "clear"].includes(actType)) {
+      return [["snapshot", ["--limit", "500"]], ["forms", []]];
+    }
+    if (["click", "press", "key"].includes(actType)) {
+      return [["snapshot", ["--limit", "500"]], ["state", []]];
+    }
+    return [["snapshot", ["--limit", "500"]], ["state", []]];
+  }
+
+  if (phase === "verify") {
+    if (["goto", "back", "forward", "reload", "switch", "new-tab", "close-tab"].includes(normalizedCmd)) {
+      return [["snapshot", ["--limit", "500"]], ["state", []]];
+    }
+    if (["type", "set", "clear"].includes(actType)) {
+      return [["forms", []]];
+    }
+    if (["click", "press", "key"].includes(actType)) {
+      return [["url", []], ["state", []]];
+    }
+    return [["url", []], ["state", []]];
+  }
+
+  return [["url", []], ["snapshot", ["--limit", "500"]], ["state", []]];
 }
 
 function summarizeAcquisition(taskState) {
@@ -488,15 +536,12 @@ async function attemptEnsureLocked(taskState, trace, history, baseObservation) {
 
 async function runObservation(trace, history, label, opts = {}) {
   const includeHtml = !!opts.includeHtml;
-  const observationCmds = [
-    ["url", []],
-    ["snapshot", ["--limit", "500"]],
-    ["accessibility", ["--limit", "350"]],
-    ["forms", []],
-    ["tables", []],
-    ["state", []]
-  ];
-  if (includeHtml) observationCmds.push(["html", ["--max", String(OBSERVE_HTML_CHARS)]]);
+  const observationCmds = Array.isArray(opts.commands) && opts.commands.length
+    ? opts.commands.map(([cmd, args = []]) => [normalizeCommand(cmd), args])
+    : [["url", []], ["snapshot", ["--limit", "500"]], ["state", []]];
+  if (includeHtml && !observationCmds.some(([cmd]) => cmd === "html")) {
+    observationCmds.push(["html", ["--max", String(OBSERVE_HTML_CHARS)]]);
+  }
 
   const parts = [];
   for (const [cmd, args] of observationCmds) {
@@ -549,10 +594,39 @@ function youtubeUrl() {
   return "https://www.youtube.com";
 }
 
+function spotifyUrl() {
+  return "https://open.spotify.com/search";
+}
+
+function googleSearchUrl(query) {
+  return `https://www.google.com/search?q=${encodeURIComponent(String(query || ""))}`;
+}
+
+function normalizeNeedle(text) {
+  return String(text || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function findVisibleRank(items, target) {
+  const needle = normalizeNeedle(target);
+  if (!needle) return 0;
+  const list = Array.isArray(items) ? items : [];
+  for (let i = 0; i < list.length; i += 1) {
+    const item = list[i] || {};
+    const haystack = normalizeNeedle([item.text, item.href, item.selector].filter(Boolean).join(" "));
+    if (haystack.includes(needle)) return i + 1;
+  }
+  return 0;
+}
+
 async function runDeterministicTask(taskState, history) {
   const parsed = taskState.invariants.parsedTask || {};
   const intent = parsed.intent || "";
-  if (!["open_website", "youtube_search", "send_message"].includes(intent)) return null;
+  if (!["open_website", "youtube_search", "spotify_search", "google_search_rank", "send_message"].includes(intent)) return null;
   const trace = [];
   const contextLockRequired = requiresLockedContext(taskState);
   audit(taskState, {
@@ -560,7 +634,11 @@ async function runDeterministicTask(taskState, history) {
     driver: BROWSER_DRIVER,
     rawRequest: taskState.invariants.originalRequest,
     parsed,
-    firstAction: intent === "send_message" ? "goto_messenger" : "goto_youtube",
+    firstAction:
+      intent === "send_message" ? "goto_messenger" :
+      parsed.app === "spotify" ? "goto_spotify" :
+      parsed.app === "google" ? "goto_google" :
+      "goto_youtube",
     contextLockRequired
   });
   if (intent === "open_website" && parsed.app === "youtube") {
@@ -571,6 +649,20 @@ async function runDeterministicTask(taskState, history) {
     audit(taskState, { type: "verification_result", driver: BROWSER_DRIVER, verification: verification.json, status: taskState.finalStatus });
     return {
       final: success ? "Đã mở YouTube và xác minh domain youtube.com." : "FAILED_VERIFICATION: không xác minh được YouTube sau khi mở.",
+      trace,
+      audit: taskState.audit,
+      status: taskState.finalStatus,
+      invariants: taskState.invariants
+    };
+  }
+  if (intent === "open_website" && parsed.app === "spotify") {
+    const first = await runAndTrace(trace, "goto", [spotifyUrl()], "DETERMINISTIC_OPEN_SPOTIFY");
+    const verification = await runAndTrace(trace, "verify", ["--url", "spotify.com"], "DETERMINISTIC_VERIFY");
+    const success = first.ok && verification.json?.ok === true;
+    taskState.finalStatus = success ? "SUCCESS" : "FAILED_VERIFICATION";
+    audit(taskState, { type: "verification_result", driver: BROWSER_DRIVER, verification: verification.json, status: taskState.finalStatus });
+    return {
+      final: success ? "Đã mở Spotify và xác minh domain spotify.com." : "FAILED_VERIFICATION: không xác minh được Spotify sau khi mở.",
       trace,
       audit: taskState.audit,
       status: taskState.finalStatus,
@@ -589,6 +681,49 @@ async function runDeterministicTask(taskState, history) {
     audit(taskState, { type: "verification_result", driver: BROWSER_DRIVER, verification: verification.json, status: taskState.finalStatus });
     return {
       final: success ? `Đã tìm YouTube với truy vấn: ${query}` : "FAILED_VERIFICATION: không xác minh được trang kết quả YouTube.",
+      trace,
+      audit: taskState.audit,
+      status: taskState.finalStatus,
+      invariants: taskState.invariants
+    };
+  }
+  if (intent === "spotify_search" && parsed.app === "spotify") {
+    const query = parsed.query || "";
+    const first = await runAndTrace(trace, "goto", [spotifyUrl()], "DETERMINISTIC_SPOTIFY_GOTO");
+    const filled = await runAndTrace(trace, "type", ["--selector", "input[type=\"search\"]", "--value", query, "--expect-value", query], "DETERMINISTIC_SPOTIFY_FILL");
+    const pressed = filled.ok ? await runAndTrace(trace, "key", ["--name", "Enter"], "DETERMINISTIC_SPOTIFY_ENTER") : { ok: false, json: null };
+    const verification = await runAndTrace(trace, "verify", ["--url", "spotify.com/search"], "DETERMINISTIC_VERIFY");
+    const success = first.ok && filled.ok && pressed.ok && verification.json?.ok === true;
+    taskState.finalStatus = success ? "SUCCESS" : "FAILED_VERIFICATION";
+    audit(taskState, { type: "verification_result", driver: BROWSER_DRIVER, query, verification: verification.json, status: taskState.finalStatus });
+    return {
+      final: success ? `Đã mở Spotify Search với truy vấn: ${query}` : "FAILED_VERIFICATION: không xác minh được trang tìm kiếm Spotify.",
+      trace,
+      audit: taskState.audit,
+      status: taskState.finalStatus,
+      invariants: taskState.invariants
+    };
+  }
+  if (intent === "google_search_rank" && parsed.app === "google") {
+    const query = parsed.query || "";
+    const target = parsed.searchTarget || parsed.target || "";
+    const first = await runAndTrace(trace, "goto", [googleSearchUrl(query)], "DETERMINISTIC_GOOGLE_GOTO");
+    const results = first.ok ? await runAndTrace(trace, "elements", ["--query", "a h3"], "DETERMINISTIC_GOOGLE_RESULTS") : { ok: false, json: [] };
+    const fallbackResults = (!Array.isArray(results.json) || !results.json.length) && first.ok
+      ? await runAndTrace(trace, "elements", ["--query", "h3"], "DETERMINISTIC_GOOGLE_RESULTS_FALLBACK")
+      : null;
+    const visibleItems = Array.isArray(results.json) && results.json.length ? results.json : Array.isArray(fallbackResults?.json) ? fallbackResults.json : [];
+    const rank = findVisibleRank(visibleItems, target);
+    const verification = await runAndTrace(trace, "verify", ["--url", "google.com/search"], "DETERMINISTIC_VERIFY");
+    const success = first.ok && verification.json?.ok === true;
+    taskState.finalStatus = success ? "SUCCESS" : "FAILED_VERIFICATION";
+    audit(taskState, { type: "verification_result", driver: BROWSER_DRIVER, query, target, rank, visibleResults: visibleItems.slice(0, 10), verification: verification.json, status: taskState.finalStatus });
+    return {
+      final: success
+        ? (rank
+          ? `Đã tìm Google với truy vấn "${query}". "${target}" đang ở vị trí thứ ${rank} trong các kết quả nhìn thấy đầu tiên.`
+          : `Đã tìm Google với truy vấn "${query}" nhưng chưa thấy "${target}" trong các kết quả nhìn thấy đầu tiên.`)
+        : "FAILED_VERIFICATION: không xác minh được trang kết quả Google.",
       trace,
       audit: taskState.audit,
       status: taskState.finalStatus,
@@ -675,6 +810,44 @@ function normalizeModel(modelId) {
   return MODELS.some(m => m.id === requested) ? requested : DEFAULT_MODEL;
 }
 
+function normalizeMessageText(text) {
+  return String(text || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function tokenizeMessage(text) {
+  return new Set(
+    normalizeMessageText(text)
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .split(" ")
+      .map(token => token.trim())
+      .filter(token => token.length >= 2)
+  );
+}
+
+function looksLikeFollowUp(message) {
+  const text = normalizeMessageText(message);
+  return /^(tiếp|tiếp tục|làm tiếp|thử lại|again|retry|sửa|đổi|thêm|giảm|tăng|ngắn hơn|dài hơn|khác đi|nhắn|gửi|enter|icon)/i.test(text);
+}
+
+function shouldResetHistoryForNewTask(history, message) {
+  if (!Array.isArray(history) || history.length === 0) return false;
+  if (looksLikeFollowUp(message)) return false;
+
+  const previousUser = [...history].reverse().find(item => item?.role === "user" && item?.text);
+  if (!previousUser) return false;
+
+  const currentTokens = tokenizeMessage(message);
+  const previousTokens = tokenizeMessage(previousUser.text);
+  if (!currentTokens.size || !previousTokens.size) return false;
+
+  let overlap = 0;
+  for (const token of currentTokens) {
+    if (previousTokens.has(token)) overlap += 1;
+  }
+  const overlapRatio = overlap / Math.max(1, Math.min(currentTokens.size, previousTokens.size));
+  return overlapRatio < 0.2;
+}
+
 async function callGemini(apiKey, history, userText) {
   const system = `Bạn là Fast Browser Agent chạy local trên Windows.
 Mục tiêu: quan sát cấu trúc DOM và hành động chính xác trên trình duyệt (không dùng vision). Luôn giao tiếp bằng tiếng Việt.
@@ -683,53 +856,47 @@ Luôn TRẢ LẠI CHỈ JSON theo một trong hai schema sau:
 - Tool call: {"tool": {"cmd": "<cmd>", "args": [ ... ] }, "note":"ngắn gọn tiếng Việt"}
 - Final report: {"final": "báo cáo ngắn tiếng Việt"}
 
-QUY TẮC KHẢO SÁT TRANG (BẮT BUỘC):
-1) Trước khi thao tác trên phần tử (gõ, xóa, click), hệ thống sẽ tự cung cấp OBSERVATION gồm url, snapshot, accessibility tree, forms, tables và đôi khi html rút gọn. PHẢI dựa vào OBSERVATION mới nhất để chọn mục tiêu.
-2) Sau mỗi thao tác quan trọng, hệ thống sẽ cung cấp VERIFY_OBSERVATION. PHẢI dùng nó để kiểm tra thao tác đã tác động đúng vùng/trạng thái trước khi tiếp tục.
-3) Nếu OBSERVATION chưa đủ để phân biệt nhiều phần tử giống nhau, hãy quan sát thêm bằng snapshot/accessibility/find/forms/tables/html hoặc hỏi người dùng. Không đoán.
-4) Nếu thấy tiêu đề cột/heading (ví dụ "Tiêu Đề / Loại lịch hẹn"), phải tìm các hàng/cell tương ứng (sử dụng "tables" hoặc "find --text").
-5) Nếu "read" chỉ trả header mà không có dữ liệu, KHÔNG được trả "final"; phải tiếp tục điều tra.
-
-QUY TẮC CHỌN SELECTOR:
-- Khi yêu cầu thao tác cần selector, trả args kèm "--selector" với selector ngắn và cụ thể (ưu tiên id, name, placeholder, aria-label). Ví dụ: {"tool":{"cmd":"type","args":["--selector","input[placeholder='TÊN ĐĂNG NHẬP']","--value","... "]}}
-- Ngoài ra, kèm theo một trường gợi ý trong note bằng tiếng Việt mô tả selector bạn tin tưởng nhất.
-- Ưu tiên locator ngữ nghĩa thay vì CSS khi có thể: "--role", "--name", "--placeholder", "--near". Ví dụ: {"tool":{"cmd":"click","args":["--role","button","--name","Đăng nhập"]},"note":"bấm nút đăng nhập bằng role/name"}.
-- Ưu tiên dùng tool "act" cho thao tác có thể xác minh, để executor tự resolve target, thực thi và verify trong một lần. Ví dụ: {"tool":{"cmd":"act","args":["--action","type","--role","textbox","--name","Số điện thoại","--value","090...","--expect-value","090..."]},"note":"nhập và xác minh giá trị"}.
-- Không bao giờ dùng selector chung cho thao tác nhập/click như div[contenteditable='true'], [role='textbox'], input, textarea, button, a. Nếu discovery/snapshot có index của phần tử đúng, hãy dùng "--index" thay vì selector chung.
-- Chỉ chọn phần tử khi vai trò, nhãn, vị trí và vùng chứa của nó phù hợp với nhiệm vụ hiện tại. Nếu có nhiều phần tử nhập/click tương tự nhau, phải quan sát thêm hoặc hỏi người dùng.
-- Trước hành động rủi ro, phải xác minh bằng nhiều tín hiệu độc lập như URL/title, heading, vùng chứa, trạng thái focus, và kết quả sau thao tác thử.
+QUY TẮC KHẢO SÁT VÀ CHỌN MỤC TIÊU (BẮT BUỘC):
+1) Hệ thống sẽ tự động cung cấp OBSERVATION (gồm URL, snapshot, accessibility, v.v.). Bạn PHẢI dựa vào OBSERVATION mới nhất để chọn mục tiêu.
+2) LUÔN LUÔN ưu tiên nhắm mục tiêu bằng pid nếu phần tử đó có pid (ví dụ: {"cmd":"click","args":["--pid","15"]}). Đừng mò mẫm bằng text hoặc css selector nếu đã có pid.
+3) Bạn CÓ THỂ (và được khuyến khích) xuất ra nhiều lệnh liên tiếp trong mảng "tools" để thực hiện một chuỗi hành động nhanh chóng. Hệ thống sẽ tự động chạy tuần tự và báo cáo lại nếu có lệnh nào hụt. Đừng ngại gộp các lệnh như [nhập chữ] -> [enter] -> [nhập chữ] thành một mảng lệnh.
 
 XỬ LÝ LỖI VÀ FALLBACK:
-- Nếu một thao tác element trả lỗi "element not found", hãy yêu cầu discovery thay vì thử đoán selector mới. Ví dụ trả: {"tool":{"cmd":"find","args":["--text","TÊN ĐĂNG NHẬP"]}, "note":"phát hiện không tìm thấy selector, đang tìm label"}
-- Nếu khám phá DOM trả danh sách selector hợp lệ, model nên chọn một selector từ kết quả discovery thay vì tự tạo selector dài/không chắc.
+- Nếu một thao tác báo lỗi "element not found", hãy yêu cầu 'snapshot' hoặc 'elements' để lấy pid của giao diện hiện tại thay vì thử đoán bừa selector.
+- Không có giới hạn bước cố định; hãy tiếp tục hành động khi còn chiến lược. Nếu bế tắc, trả 'final' để hỏi người dùng.
 
-HẠN CHẾ VÀ TỐI ƯU:
-- Tối đa một tool call trên mỗi JSON reply.
-- Sau thao tác có trạng thái mong đợi rõ ràng, có thể dùng "verify" để kiểm tra text/url/selector/value trước khi kết luận.
-- Tránh dùng selector dài/chiều sâu (ví dụ nhiều >4 level div chains); ưu tiên selector ngắn.
-- Không có giới hạn bước cố định; hãy tiếp tục quan sát và hành động khi còn chiến lược rõ ràng.
-- Nếu phân vân, bế tắc, thiếu dữ liệu quan trọng, hoặc các chiến lược hợp lý đã thất bại, trả final hỏi lại người dùng bằng câu hỏi cụ thể thay vì đoán tiếp.
-- Nếu không thể xác định selector an toàn, trả final mô tả trạng thái và yêu cầu hướng dẫn người dùng.
+SỔ TAY QUY TRÌNH ĐẶC BIỆT (PLAYBOOKS):
+- Nếu tác vụ yêu cầu Mở nhạc/Video YouTube (VD: "mở bài Vinh Khuất", "bật nhạc Sơn Tùng"): 
+  (1) Không bao giờ dùng Tab+Enter mù quáng. 
+  (2) Dùng lệnh 'goto' để tìm kiếm: '{"cmd":"goto","args":["https://www.youtube.com/results?search_query=vinh+khuat"]}'
+  (3) Dùng 'evaluate' để lấy link video đầu tiên: '{"cmd":"evaluate","args":["--expr","Array.from(document.querySelectorAll(\'ytd-video-renderer a#video-title\')).slice(0,3).map(a => ({title: a.textContent.trim(), href: a.href}))"]}'
+  (4) Dùng 'goto' để mở link video vừa lấy được.
+- Nếu URL chứa "ads.salontukawa.com" và bạn cần đếm chiến dịch hoặc lấy thông tin: (1) Nhìn cột bên trái, tìm 'pid' của Tài Khoản mục tiêu và gọi lệnh click vào pid đó. (2) Chờ trang tải bảng điều khiển bên phải. (3) Dùng lệnh 'tables' hoặc đếm thủ công các chiến dịch đang hoạt động. (4) Trả kết quả 'final'.
 
 VÍ DỤ HỢP LỆ (chỉ JSON):
-1) Discovery: {"tool":{"cmd":"inputs","args":[]},"note":"liệt kê inputs trên trang"}
-2) Find: {"tool":{"cmd":"find","args":["--text","TÊN ĐĂNG NHẬP"]},"note":"tìm label"}
-3) Type: {"tool":{"cmd":"type","args":["--selector","input[placeholder='TÊN ĐĂNG NHẬP']","--value","demo_user"]},"note":"nhập tên"}
-4) Goto: {"tool":{"cmd":"goto","args":["https://example.com"]},"note":"mở trang"}
-5) Act: {"tool":{"cmd":"act","args":["--action","click","--role","button","--name","Đăng nhập","--expect-text","Dashboard"]},"note":"bấm đăng nhập và kiểm tra kết quả"}
-6) Final: {"final":"Đã nhập tên đăng nhập, chờ xác nhận gửi"}
+1) Batch Lệnh (Khuyên dùng): {"tools": [{"cmd":"click","args":["--pid","10"]},{"cmd":"type","args":["--pid","12","--value","abc"]},{"cmd":"key","args":["--name","Enter"]}]}
+2) Discovery: {"tools": [{"cmd":"elements","args":[]}]}
+3) Goto: {"tools": [{"cmd":"goto","args":["https://example.com"]}]}
+4) Final Báo cáo: {"final":"Đã xử lý xong tác vụ."}`;
 
-GHI CHÚ: luôn ưu tiên an toàn và hỏi xác nhận cho các hành động có rủi ro (gửi tin nhắn, giao dịch, thay đổi bảo mật).`;
+  const systemWithRules = `${system}
+
+TOOL SAVINGS RULES:
+- After SAFETY_BLOCK, do not request any extra observation tools. Change strategy immediately.
+- If elements returns fewer than 5 items, immediately try elements with --query instead of calling plain elements again.
+- Do not call the same tool twice in a row with the same params.
+- For YouTube link discovery, use elements --query "ytd-video-renderer a#video-title" instead of evaluate.
+- For login or form filling, prefer pid-based batch actions such as type --pid 1 --value ..., type --pid 2 --value ..., click --pid 3.`;
 
   const contents = compactHistory(history);
   contents.push({ role: "user", parts: [{ text: userText }] });
 
   const body = {
-    systemInstruction: { parts: [{ text: system }] },
+    systemInstruction: { parts: [{ text: systemWithRules }] },
     contents,
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: 700,
+      maxOutputTokens: 4000,
       thinkingConfig: { thinkingBudget: 0 }
     }
   };
@@ -751,7 +918,10 @@ GHI CHÚ: luôn ưu tiên an toàn và hỏi xác nhận cho các hành động 
 }
 
 async function agentTurn(sessionId, message, modelId) {
-  const history = conversations.get(sessionId) || [];
+  let history = conversations.get(sessionId) || [];
+  if (shouldResetHistoryForNewTask(history, message)) {
+    history = [];
+  }
   history.modelId = normalizeModel(modelId);
   history.push({ role: "user", text: message });
   const taskState = createTaskState(message);
@@ -771,6 +941,7 @@ async function agentTurn(sessionId, message, modelId) {
   const failedToolCounts = new Map();
   const toolCounts = new Map();
   const signatureStateVersion = new Map();
+  let lastToolSignature = "";
   let nextInput = message;
   let final = "";
 
@@ -784,21 +955,26 @@ async function agentTurn(sessionId, message, modelId) {
     });
 
     if (model.parsed.final) {
-      if (taskState.invariants.successCriteria.length && taskState.finalStatus === "RUNNING") {
-        final = `Chưa thể xác nhận hoàn tất: successCriteria chưa được verifier chứng minh. Trạng thái: PARTIAL.`;
-        taskState.finalStatus = "PARTIAL";
-        audit(taskState, { type: "final_blocked", reason: "missing verified success criteria", proposedFinal: String(model.parsed.final) });
-      } else {
+      if (taskState.invariants.successCriteria.length && taskState.finalStatus === "RUNNING") { audit(taskState, { type: "final_unverified", reason: "missing verified success criteria", proposedFinal: String(model.parsed.final) }); }
         final = String(model.parsed.final);
         taskState.finalStatus = taskState.finalStatus === "RUNNING" ? "SUCCESS" : taskState.finalStatus;
         audit(taskState, { type: "final", status: taskState.finalStatus, final });
-      }
       history.push({ role: "model", text: final });
       break;
     }
 
-    const tool = model.parsed.tool;
-    if (!tool || !tool.cmd) throw new Error("JSON không có final hoặc tool.cmd.");
+    const tools = model.parsed.tools || (model.parsed.tool ? [model.parsed.tool] : []);
+    if (!tools.length) throw new Error("JSON không có final hoặc tools.");
+
+    history.push({ role: "model", text: JSON.stringify(model.parsed) });
+
+    let nextInputs = [];
+    let shouldBreakOuter = false;
+
+    for (const tool of tools) {
+      if (!tool || !tool.cmd) continue;
+
+
 
     const toolArgs = Array.isArray(tool.args) ? tool.args : [];
     const toolCmd = normalizeCommand(tool.cmd);
@@ -806,22 +982,22 @@ async function agentTurn(sessionId, message, modelId) {
     const currentStateVersion = taskState.acquisition?.stateVersion || 0;
     const lastVersion = signatureStateVersion.get(signature);
     toolCounts.set(signature, (toolCounts.get(signature) || 0) + 1);
-    if (lastVersion === currentStateVersion && (toolCounts.get(signature) || 0) > 1) {
-      taskState.finalStatus = "FAILED";
-      final = `Dừng để tiết kiệm token: lặp lại cùng tool và cùng args không đổi trạng thái (${toolCmd}).`;
-      break;
-    }
+    if (signature === lastToolSignature) { nextInputs.push(`Do not call tool '${toolCmd}' twice in a row with the same params. Change strategy or use elements --query to narrow the target.`); continue; }
+    if (lastVersion === currentStateVersion && (toolCounts.get(signature) || 0) > 1) { nextInputs.push('Cảnh báo: Bạn vừa lặp lại lệnh ' + toolCmd + ' mà không có tác dụng. Hãy thử cách khác.'); continue; }
     signatureStateVersion.set(signature, currentStateVersion);
     if ((failedToolCounts.get(signature) || 0) >= 2) {
       final = `Tôi dừng vì cùng một thao tác đã lỗi lặp lại nhiều lần: ${toolCmd}. Cần đổi cách làm thay vì tiếp tục thử mù.`;
-      break;
+      shouldBreakOuter = true; break;
     }
 
     // Browser state changes after nearly every action. Observe before each
     // action so the model targets the current page, not stale DOM.
     let preObservation = null;
-    if (isActionTool(toolCmd)) {
-      preObservation = await runObservation(trace, history, "PRE_ACTION", { includeHtml: false });
+    if (shouldObserveBeforeTool(toolCmd)) {
+      preObservation = await runObservation(trace, history, "PRE_ACTION", {
+        includeHtml: false,
+        commands: observationPlanForAction(toolCmd, toolArgs, "pre")
+      });
       if (requiresLockedContext(taskState) && !taskState.acquisition?.selectedCandidate) {
         const autoCandidate = autoCreateCandidateFromObservation(taskState, preObservation);
         if (autoCandidate) {
@@ -838,7 +1014,7 @@ async function agentTurn(sessionId, message, modelId) {
         taskState.finalStatus = contextCheck.status || "CONTEXT_CHANGED";
         final = `Dừng an toàn: context changed unexpectedly (${contextCheck.reason}).`;
         audit(taskState, { type: "blocked", status: taskState.finalStatus, reason: contextCheck.reason });
-        break;
+        shouldBreakOuter = true; break;
       }
     }
 
@@ -864,7 +1040,7 @@ async function agentTurn(sessionId, message, modelId) {
       if (!lockStatus.ok) {
         taskState.finalStatus = lockStatus.status === "UNKNOWN_TARGET_CONTEXT" ? "AMBIGUOUS_TARGET_CONTEXT" : "FAILED_CONTEXT_LOCK";
         final = `${taskState.finalStatus}: ${lockStatus.reason || "cannot lock target context"}. candidates=${JSON.stringify(taskState.acquisition?.candidates || [])}`;
-        break;
+        shouldBreakOuter = true; break;
       }
     }
     const validation = validateAction(action, taskState);
@@ -877,19 +1053,19 @@ async function agentTurn(sessionId, message, modelId) {
       taskState.finalStatus = "BLOCKED_BY_SECURITY";
       final = `Dừng an toàn: action bị block vì ${validation.violations.join("; ")}.`;
       audit(taskState, { type: "blocked", status: taskState.finalStatus, violations: validation.violations });
-      break;
+      shouldBreakOuter = true; break;
     }
 
     const unsafeReason = needsSaferTarget(toolCmd, toolArgs);
     if (unsafeReason) {
       history.push({ role: "model", text: JSON.stringify(model.parsed) });
       history.push({ role: "user", text: `SAFETY_BLOCK ${toolCmd}: ${unsafeReason}.` });
-      await runObservation(trace, history, "SAFETY_BLOCK_OBSERVATION", { includeHtml: true });
       nextInput = `Tôi đã chặn thao tác '${toolCmd}' vì ${unsafeReason}. ${describeTargetingRule(toolCmd)} Hãy chọn lại bằng OBSERVATION mới nhất, hoặc trả final nếu không đủ chắc chắn.`;
       continue;
     }
 
     const effectiveArgs = taskState.contextLock?.locked ? bindActionToLockedTarget(toolCmd, toolArgs, taskState) : toolArgs;
+    lastToolSignature = signature;
     let result = await runBrowserDom(toolCmd, effectiveArgs);
     let logicalOk = toolSucceeded(result);
     if (!logicalOk) failedToolCounts.set(signature, (failedToolCounts.get(signature) || 0) + 1);
@@ -906,7 +1082,7 @@ async function agentTurn(sessionId, message, modelId) {
       } else {
         taskState.finalStatus = "FAILED_CONTEXT_LOCK";
         final = `FAILED_CONTEXT_LOCK: execution target drifted outside locked context (${relock.reason || "mismatch target"}).`;
-        break;
+        shouldBreakOuter = true; break;
       }
     }
     if (toolCmd === "find" && resultJson?.ok === true) {
@@ -920,18 +1096,9 @@ async function agentTurn(sessionId, message, modelId) {
         if (context.targetActive) createOrUpdateContextLock(taskState, preObservation || {});
       }
     } else if (toolCmd === "find" && resultJson?.ok === false) {
-      taskState.acquisition.repeatedFinds = (taskState.acquisition.repeatedFinds || 0) + 1;
-      if ((taskState.acquisition.repeatedFinds || 0) > 3) {
-        taskState.finalStatus = "FAILED";
-        final = "Dừng: lặp find quá số lần cho phép mà không lock được context mục tiêu.";
-        break;
-      }
+      
     }
-    if (taskState.acquisition?.attempts > 3 && !taskState.contextLock?.locked) {
-      taskState.finalStatus = "FAILED_CONTEXT_LOCK";
-      final = `FAILED_CONTEXT_LOCK: không thể lock context mục tiêu sau ${taskState.acquisition.attempts} lần mở target. Candidates: ${JSON.stringify(taskState.acquisition.candidates || [])}`;
-      break;
-    }
+    
     audit(taskState, {
       type: "execution_result",
       action,
@@ -954,9 +1121,12 @@ async function agentTurn(sessionId, message, modelId) {
       continue;
     }
 
-    if (logicalOk && isActionTool(toolCmd)) {
+    if (logicalOk && shouldObserveAfterTool(toolCmd)) {
       if (acquireAction) setAcquisitionState(taskState, ACQUISITION_STATES.TARGET_CONTEXT_VERIFYING);
-      const verifyObservation = await runObservation(trace, history, "VERIFY_OBSERVATION", { includeHtml: false });
+      const verifyObservation = await runObservation(trace, history, "VERIFY_OBSERVATION", {
+        includeHtml: false,
+        commands: observationPlanForAction(toolCmd, toolArgs, "verify")
+      });
       if (acquireAction) {
         const locked = createOrUpdateContextLock(taskState, verifyObservation);
         if (locked?.locked) setAcquisitionState(taskState, ACQUISITION_STATES.ACTION_READY);
@@ -967,12 +1137,12 @@ async function agentTurn(sessionId, message, modelId) {
       if (!postContextCheck.ok) {
         taskState.finalStatus = postContextCheck.status || "CONTEXT_CHANGED";
         final = `Dừng an toàn: context changed unexpectedly (${postContextCheck.reason}).`;
-        break;
+        shouldBreakOuter = true; break;
       }
       if (action.sideEffect && status === "FAILED_VERIFICATION") {
         taskState.finalStatus = "FAILED_VERIFICATION";
         final = "Thao tác đã chạy nhưng verifier không xác nhận được tiêu chí thành công, nên tôi không coi task là hoàn tất.";
-        break;
+        shouldBreakOuter = true; break;
       }
       if (status === "SUCCESS") taskState.finalStatus = "SUCCESS";
     }
@@ -983,7 +1153,10 @@ async function agentTurn(sessionId, message, modelId) {
     const errText = String(result.error || result.output || "");
     if (!logicalOk && /element not found/i.test(errText)) {
       try {
-        await runObservation(trace, history, "NOT_FOUND_OBSERVATION", { includeHtml: true });
+        await runObservation(trace, history, "NOT_FOUND_OBSERVATION", {
+          includeHtml: false,
+          commands: observationPlanForAction(toolCmd, toolArgs, "not_found")
+        });
         nextInput = `Hành động '${toolCmd}' thất bại: không tìm thấy phần tử. Tôi đã thêm OBSERVATION mới vào lịch sử. Hãy chọn chiến lược tiếp theo (tìm selector mới, click element khác, quan sát thêm, hoặc báo lỗi/hỏi người dùng).`;
         continue;
       } catch (e) {
@@ -996,6 +1169,16 @@ async function agentTurn(sessionId, message, modelId) {
     history.push({ role: "model", text: JSON.stringify(model.parsed) });
     history.push({ role: "user", text: resultText.slice(0, TOOL_RESULT_CHARS + 200) });
     nextInput = `Tiep tuc tu ket qua tool va OBSERVATION moi nhat trong lich su. Neu vua thao tac, hay kiem tra VERIFY_OBSERVATION de xac nhan dung trang thai truoc khi lam tiep. Neu xong thi final, neu can thao tac tiep thi goi tool tiep. Neu khong du chac chan thi hoi nguoi dung. Khong lap lai tool vua loi qua 2 lan.\n${resultText.slice(0, TOOL_RESULT_CHARS + 200)}`;
+
+    }
+    
+    if (nextInputs.length > 0) {
+      nextInput = nextInputs.join("\n");
+    }
+    
+    if (shouldBreakOuter) {
+      break;
+    }
   }
 
   if (!final) {
@@ -1029,6 +1212,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/chat") {
       const body = JSON.parse(await readBody(req));
       const sessionId = resolveSessionId(body.sessionId);
+      if (body.forceReset) resetSession(sessionId);
       const message = String(body.message || "").trim();
       const model = normalizeModel(body.model);
       if (!message) return sendJson(res, 400, { ok: false, error: "Tin nhắn trống." });

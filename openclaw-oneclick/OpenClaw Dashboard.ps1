@@ -2,12 +2,29 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
 Set-Location -LiteralPath $PSScriptRoot
 
+$openclawPath = "openclaw.cmd"
+if (Get-Command "openclaw.cmd" -ErrorAction SilentlyContinue) {
+  $openclawPath = (Get-Command "openclaw.cmd").Source
+} else {
+  $possiblePaths = @(
+    "$env:APPDATA\npm\openclaw.cmd",
+    "$env:USERPROFILE\AppData\Roaming\npm\openclaw.cmd",
+    "C:\Users\$env:USERNAME\AppData\Roaming\npm\openclaw.cmd"
+  )
+  foreach ($p in $possiblePaths) {
+    if (Test-Path $p) {
+      $openclawPath = $p
+      break
+    }
+  }
+}
+
 function Test-OpenClawGateway {
-  openclaw.cmd gateway call health *> $null
+  & $openclawPath gateway call health *> $null
   return ($LASTEXITCODE -eq 0)
 }
 
-if (-not (Get-Command openclaw.cmd -ErrorAction SilentlyContinue)) {
+if (-not (Test-Path $openclawPath) -and -not (Get-Command openclaw.cmd -ErrorAction SilentlyContinue)) {
   [System.Windows.Forms.MessageBox]::Show(
     "OpenClaw is not installed yet. Run Install-OpenClaw-OneClick.cmd first.",
     "OpenClaw",
@@ -18,7 +35,7 @@ if (-not (Get-Command openclaw.cmd -ErrorAction SilentlyContinue)) {
 }
 
 if (-not (Test-OpenClawGateway)) {
-  Start-Process -FilePath "openclaw.cmd" -ArgumentList @("gateway", "run", "--force") -WindowStyle Minimized
+  Start-Process -FilePath $openclawPath -ArgumentList @("gateway", "run", "--force") -WindowStyle Minimized
 
   $ready = $false
   for ($i = 0; $i -lt 45; $i++) {
@@ -39,7 +56,7 @@ if (-not (Test-OpenClawGateway)) {
   }
 }
 
-openclaw.cmd dashboard --yes --no-open | Out-Null
+& $openclawPath dashboard --yes --no-open | Out-Null
 $url = Get-Clipboard
 
 if (-not ($url -match "^https?://")) {

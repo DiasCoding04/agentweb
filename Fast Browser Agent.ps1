@@ -13,7 +13,13 @@ function Test-FastAgent {
 }
 
 if (-not (Test-FastAgent)) {
-  Start-Process -FilePath "node.exe" -ArgumentList "server.js" -WorkingDirectory $agentDir -WindowStyle Hidden
+  $nodePath = "node.exe"
+  if (Get-Command "node.exe" -ErrorAction SilentlyContinue) {
+    $nodePath = (Get-Command "node.exe").Source
+  } elseif (Test-Path "C:\Program Files\nodejs\node.exe") {
+    $nodePath = "C:\Program Files\nodejs\node.exe"
+  }
+  Start-Process -FilePath $nodePath -ArgumentList "server.js" -WorkingDirectory $agentDir -WindowStyle Hidden
   for ($i = 0; $i -lt 12; $i++) {
     Start-Sleep -Milliseconds 500
     if (Test-FastAgent) { break }

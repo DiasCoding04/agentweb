@@ -2,9 +2,11 @@
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const PORT = Number(process.env.OPENCLAW_BROWSER_CDP_PORT || 9222);
-const PROFILE = process.env.OPENCLAW_BROWSER_PROFILE || 'C:\\Users\\pc\\.openclaw\\browser-profile';
+const PROFILE = process.env.OPENCLAW_BROWSER_PROFILE || path.join(os.homedir(), '.openclaw', 'browser-profile');
 const CHROME_CANDIDATES = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -277,10 +279,12 @@ const helperSource = String.raw`
     return fallback && window.__ocDom.visible(fallback) ? fallback : null;
   };
   window.__ocDom.elements = (rootSelector = '') => {
-    return window.__ocDom.candidates(rootSelector).map((el, i) => {
-    const r = window.__ocDom.rect(el);
-    const area = Math.round(r.width * r.height);
-    return { index:i, tag:el.tagName.toLowerCase(), type:el.type||'', role:el.getAttribute('role')||'', text:window.__ocDom.label(el).slice(0,220), selector:window.__ocDom.cssPath(el), x:Math.round(r.x), y:Math.round(r.y), w:Math.round(r.width), h:Math.round(r.height), area, href:el.href||'', checked:!!el.checked, disabled:!!el.disabled, occluded:!window.__ocDom.actionable(el) };
+    return window.__ocDom.candidates(rootSelector).map((el) => {
+      if (!el.hasAttribute('data-pid')) { window._agentPid = (window._agentPid || 0) + 1; el.setAttribute('data-pid', window._agentPid); }
+      const pid = Number(el.getAttribute('data-pid'));
+      const r = window.__ocDom.rect(el);
+      const area = Math.round(r.width * r.height);
+      return { pid, tag:el.tagName.toLowerCase(), type:el.type||'', role:el.getAttribute('role')||'', text:window.__ocDom.label(el).slice(0,220), selector:window.__ocDom.cssPath(el), x:Math.round(r.x), y:Math.round(r.y), w:Math.round(r.width), h:Math.round(r.height), area, href:el.href||'', checked:!!el.checked, disabled:!!el.disabled, occluded:!window.__ocDom.actionable(el) };
     });
   };
   window.__ocDom.find = (query, selector, index) => {
@@ -337,6 +341,14 @@ const helperSource = String.raw`
     return el;
   };
   window.__ocDom.resolve = (target = {}) => {
+    const pid = target.pid;
+    if (pid !== undefined) {
+      const el = document.querySelector('[data-pid="' + pid + '"]');
+      if (el) {
+        el.scrollIntoView({ block:'center', inline:'center' }); el.focus();
+        return el;
+      }
+    }
     const selector = target.selector || '';
     const index = target.index;
     const scope = target.scope || target.scopeSelector || '';
@@ -414,6 +426,7 @@ function targetFromOpts(opts) {
     text: opts.text || opts._?.join?.(' ') || '',
     selector: opts.selector || '',
     index: opts.index,
+    pid: opts.pid,
     role: opts.role || '',
     name: opts.name || '',
     placeholder: opts.placeholder || '',
@@ -705,13 +718,14 @@ async function main() {
     await installHelpers(cdp);
     if (cmd === 'goto') return await navigate(cdp, opts.url || opts._[0] || 'about:blank');
     if (cmd === 'url') return await evalPage(cdp, `({title:document.title,url:location.href})`);
+    if (cmd === 'evaluate') return await evalPage(cdp, opts.expr || opts._[0] || '');
     if (cmd === 'read') { const s = await evalPage(cdp, snapshotExpr(50)); return { title:s.title, url:s.url, scroll:s.scroll, text:s.text }; }
     if (cmd === 'snapshot') return await evalPage(cdp, snapshotExpr(opts.limit || 300));
     if (cmd === 'accessibility') return await accessibility(cdp, opts);
-    if (cmd === 'elements') return await evalPage(cdp, listsExpr('all', opts.selector || opts._[0] || ''));
-    if (cmd === 'links') return await evalPage(cdp, listsExpr('a', opts.selector || opts._[0] || ''));
-    if (cmd === 'buttons') return await evalPage(cdp, listsExpr('button', opts.selector || opts._[0] || ''));
-    if (cmd === 'inputs') return await evalPage(cdp, listsExpr('input', opts.selector || opts._[0] || ''));
+    if (cmd === 'elements') return await evalPage(cdp, listsExpr('all', opts.query || opts.selector || opts._[0] || ''));
+    if (cmd === 'links') return await evalPage(cdp, listsExpr('a', opts.query || opts.selector || opts._[0] || ''));
+    if (cmd === 'buttons') return await evalPage(cdp, listsExpr('button', opts.query || opts.selector || opts._[0] || ''));
+    if (cmd === 'inputs') return await evalPage(cdp, listsExpr('input', opts.query || opts.selector || opts._[0] || ''));
     if (cmd === 'forms') return await evalPage(cdp, formsExpr());
     if (cmd === 'tables') return await evalPage(cdp, tableExpr());
     if (cmd === 'state') return await evalPage(cdp, stateExpr());
@@ -734,6 +748,12 @@ async function main() {
       if (!f.ok) return f;
       if (f.disabled) return { ok:false, error:'element disabled', target:f };
       await cdp.call('Input.insertText', { text: opts.value || opts._.join(' ') });
+      if (opts['press-key']) {
+        const name = opts['press-key'];
+        const codeMap = { Enter:13, Tab:9, Escape:27, Backspace:8, Delete:46, ArrowDown:40, ArrowUp:38, ArrowLeft:37, ArrowRight:39 };
+        await cdp.call('Input.dispatchKeyEvent', { type:'keyDown', key:name, code:name, windowsVirtualKeyCode:codeMap[name] || 0 });
+        await cdp.call('Input.dispatchKeyEvent', { type:'keyUp', key:name, code:name, windowsVirtualKeyCode:codeMap[name] || 0 });
+      }
       return { ok:true, typed:opts.value || opts._.join(' '), target:f };
     }
     if (cmd === 'set') return await evalPage(cdp, setValueExpr({ ...opts, text: opts.text || '', value: opts.value || opts._.join(' ') }));

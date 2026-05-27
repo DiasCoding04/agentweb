@@ -3,9 +3,11 @@ import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
+import os from 'node:os';
+import path from 'node:path';
 
 const PORT = Number(process.env.OPENCLAW_BROWSER_CDP_PORT || 9222);
-const PROFILE = process.env.OPENCLAW_BROWSER_PROFILE || 'C:\\Users\\pc\\.openclaw\\browser-profile';
+const PROFILE = process.env.OPENCLAW_BROWSER_PROFILE || path.join(os.homedir(), '.openclaw', 'browser-profile');
 const CDP_ENDPOINT = process.env.OPENCLAW_BROWSER_CDP_ENDPOINT || `http://127.0.0.1:${PORT}`;
 const CHROME_CANDIDATES = [
   process.env.PLAYWRIGHT_CHROME_PATH || '',
@@ -92,6 +94,7 @@ async function getSession(opts = {}) {
 
 function targetFromOpts(opts = {}) {
   return {
+    pid: opts.pid,
     role: opts.role || '',
     name: opts.name || '',
     text: opts.text || opts._?.join(' ') || '',
@@ -135,6 +138,7 @@ async function elementInfo(locator) {
 async function resolveLocator(page, target = {}, opts = {}) {
   const base = target.scope ? page.locator(target.scope).first() : page;
   const candidates = [];
+  if (target.pid) candidates.push({ kind: 'pid', locator: page.locator(`[data-pid="${target.pid}"]`) });
   if (target.selector) candidates.push({ kind: 'selector', locator: base.locator ? base.locator(target.selector) : page.locator(target.selector) });
   if (target.role && target.name) candidates.push({ kind: 'role', locator: base.getByRole(target.role, { name: new RegExp(target.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }) });
   else if (target.role) candidates.push({ kind: 'role', locator: base.getByRole(target.role) });
@@ -176,20 +180,82 @@ async function snapshot(page, limit = 300) {
         return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
       })
       .slice(0, max)
-      .map((el, index) => {
+      .map((el) => {
+        if (!el.hasAttribute('data-pid')) { window._agentPid = (window._agentPid || 0) + 1; el.setAttribute('data-pid', window._agentPid); }
+        const pid = Number(el.getAttribute('data-pid'));
         const r = el.getBoundingClientRect();
-        return { index, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '', role:el.getAttribute('role') || '', text:(el.innerText || el.value || el.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').replace(/\s+/g,' ').trim().slice(0,240), selector:cssPath(el), x:r.x, y:r.y, w:r.width, h:r.height, disabled:!!el.disabled || el.getAttribute('aria-disabled') === 'true' };
+        return { pid, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '', role:el.getAttribute('role') || '', text:(el.innerText || el.value || el.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').replace(/\s+/g,' ').trim().slice(0,240), selector:cssPath(el), x:r.x, y:r.y, w:r.width, h:r.height, disabled:!!el.disabled || el.getAttribute('aria-disabled') === 'true' };
       });
     return { title:document.title, url:location.href, scroll:{ x:scrollX, y:scrollY, totalH:document.documentElement.scrollHeight }, text:(document.body?.innerText || '').replace(/\s+/g,' ').trim().slice(0,12000), elements };
   }, Number(limit || 300));
 }
 
+async function elements(page, selector = '', limit = 300) {
+  return await page.evaluate(({ selector: rawSelector, limit: max }) => {
+    function cssPath(el) {
+      if (el.id) return `#${CSS.escape(el.id)}`;
+      const name = el.getAttribute('name');
+      if (name) return `${el.tagName.toLowerCase()}[name="${CSS.escape(name)}"]`;
+      const aria = el.getAttribute('aria-label');
+      if (aria) return `${el.tagName.toLowerCase()}[aria-label="${CSS.escape(aria)}"]`;
+      const placeholder = el.getAttribute('placeholder');
+      if (placeholder) return `${el.tagName.toLowerCase()}[placeholder="${CSS.escape(placeholder)}"]`;
+      return el.tagName.toLowerCase();
+    }
+    const query = String(rawSelector || '').trim();
+    const baseSelector = query || 'a,button,input,textarea,select,[role],[contenteditable="true"]';
+    let nodes = [];
+    try {
+      nodes = [...document.querySelectorAll(baseSelector)];
+    } catch {
+      return [];
+    }
+    return nodes
+      .filter(el => {
+        const r = el.getBoundingClientRect();
+        const st = getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && st.display !== 'none' && st.visibility !== 'hidden';
+      })
+      .slice(0, Number(max || 300))
+      .map((el) => {
+        if (!el.hasAttribute('data-pid')) { window._agentPid = (window._agentPid || 0) + 1; el.setAttribute('data-pid', window._agentPid); }
+        const pid = Number(el.getAttribute('data-pid'));
+        const r = el.getBoundingClientRect();
+        return {
+          pid,
+          tag: el.tagName.toLowerCase(),
+          type: el.getAttribute('type') || '',
+          role: el.getAttribute('role') || '',
+          text: (el.innerText || el.value || el.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').replace(/\s+/g, ' ').trim().slice(0, 240),
+          selector: cssPath(el),
+          x: r.x,
+          y: r.y,
+          w: r.width,
+          h: r.height,
+          area: r.width * r.height,
+          href: el.getAttribute('href') || '',
+          checked: !!el.checked,
+          disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true',
+          occluded: false
+        };
+      });
+  }, { selector, limit: Number(limit || 300) });
+}
+
 async function inputs(page) {
-  return await page.evaluate(() => [...document.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="textbox"]')].map((el, index) => ({ index, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '', role:el.getAttribute('role') || '', name:el.getAttribute('name') || '', label:el.getAttribute('aria-label') || el.getAttribute('placeholder') || '', placeholder:el.getAttribute('placeholder') || '', value:el.value || el.innerText || '', disabled:!!el.disabled || el.getAttribute('aria-disabled') === 'true' })));
+  return await page.evaluate(() => [...document.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="textbox"]')].map((el) => {
+    if (!el.hasAttribute('data-pid')) { window._agentPid = (window._agentPid || 0) + 1; el.setAttribute('data-pid', window._agentPid); }
+    const pid = Number(el.getAttribute('data-pid'));
+    return { pid, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '', role:el.getAttribute('role') || '', name:el.getAttribute('name') || '', label:el.getAttribute('aria-label') || el.getAttribute('placeholder') || '', placeholder:el.getAttribute('placeholder') || '', value:el.value || el.innerText || '', disabled:!!el.disabled || el.getAttribute('aria-disabled') === 'true' };
+  }));
 }
 
 async function forms(page) {
-  return await page.evaluate(() => [...document.querySelectorAll('form')].map((form, formIndex) => ({ formIndex, text:(form.innerText || '').replace(/\s+/g,' ').slice(0,500), inputs:[...form.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="textbox"]')].map((el, index) => ({ index, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '', name:el.getAttribute('name') || '', label:el.getAttribute('aria-label') || el.getAttribute('placeholder') || '', value:el.value || el.innerText || '' })) })));
+  return await page.evaluate(() => [...document.querySelectorAll('form')].map((form, formIndex) => ({ formIndex, text:(form.innerText || '').replace(/\s+/g,' ').slice(0,500), inputs:[...form.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="textbox"]')].map((el) => {
+    if (!el.hasAttribute('data-pid')) { window._agentPid = (window._agentPid || 0) + 1; el.setAttribute('data-pid', window._agentPid); }
+    const pid = Number(el.getAttribute('data-pid'));
+    return { pid, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '', name:el.getAttribute('name') || '', label:el.getAttribute('aria-label') || el.getAttribute('placeholder') || '', value:el.value || el.innerText || '' };
+  }) })));
 }
 
 async function tables(page) {
@@ -197,7 +263,11 @@ async function tables(page) {
 }
 
 async function accessibility(page, limit = 400) {
-  return await page.evaluate(max => ({ title:'Accessibility approximation', nodes:[...document.querySelectorAll('a,button,input,textarea,select,[role],[aria-label],[placeholder],[contenteditable="true"]')].slice(0, max).map((el, index) => ({ index, role:el.getAttribute('role') || el.tagName.toLowerCase(), name:(el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.innerText || el.value || '').replace(/\s+/g,' ').trim(), value:el.value || '', description:el.getAttribute('title') || '', ignored:false, props:{ disabled:!!el.disabled || el.getAttribute('aria-disabled') === 'true' } })) }), Number(limit || 400));
+  return await page.evaluate(max => ({ title:'Accessibility approximation', nodes:[...document.querySelectorAll('a,button,input,textarea,select,[role],[aria-label],[placeholder],[contenteditable="true"]')].slice(0, max).map((el) => {
+    if (!el.hasAttribute('data-pid')) { window._agentPid = (window._agentPid || 0) + 1; el.setAttribute('data-pid', window._agentPid); }
+    const pid = Number(el.getAttribute('data-pid'));
+    return { pid, role:el.getAttribute('role') || el.tagName.toLowerCase(), name:(el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.innerText || el.value || '').replace(/\s+/g,' ').trim(), value:el.value || '', description:el.getAttribute('title') || '', ignored:false, props:{ disabled:!!el.disabled || el.getAttribute('aria-disabled') === 'true' } };
+  }) }), Number(limit || 400));
 }
 
 async function verify(page, opts) {
@@ -229,8 +299,12 @@ async function run() {
     else if (cmd === 'tabs') result = context.pages().map((p, index) => ({ index, title:'', url:p.url() }));
     else if (cmd === 'url') result = { title:await page.title(), url:page.url() };
     else if (cmd === 'read') { const s = await snapshot(page, 50); result = { title:s.title, url:s.url, scroll:s.scroll, text:s.text }; }
+    else if (cmd === 'evaluate') result = await page.evaluate(expr => globalThis.eval(expr), opts.expr || opts._?.[0] || '');
     else if (cmd === 'snapshot') result = await snapshot(page, opts.limit || 300);
     else if (cmd === 'accessibility') result = await accessibility(page, opts.limit || 400);
+    else if (cmd === 'elements') result = await elements(page, opts.query || opts.selector || opts._?.[0] || '', opts.limit || 300);
+    else if (cmd === 'links') result = await elements(page, opts.query || opts.selector || opts._?.[0] || 'a', opts.limit || 300);
+    else if (cmd === 'buttons') result = await elements(page, opts.query || opts.selector || opts._?.[0] || 'button,[role="button"]', opts.limit || 300);
     else if (cmd === 'inputs') result = await inputs(page);
     else if (cmd === 'forms') result = await forms(page);
     else if (cmd === 'tables') result = await tables(page);
@@ -238,8 +312,8 @@ async function run() {
     else if (cmd === 'state') result = { ok:true, url:page.url(), title:await page.title(), readyState:await page.evaluate(() => document.readyState), loading:false, dialogs:[], consoleErrors:[], networkErrors:[] };
     else if (cmd === 'find') { const found = await resolveLocator(page, target, opts); result = found.ok ? { ok:true, ...found.target, selector:found.target?.selector || target.selector || '', text:found.target?.text || target.text || '', role:found.target?.role || target.role || '', resolver:found.kind } : found; }
     else if (cmd === 'click' || cmd === 'click-index') { if (cmd === 'click-index') target.index = opts._?.[0]; const found = await resolveLocator(page, target, opts); if (!found.ok) result = found; else { await found.locator.click(); await page.waitForLoadState('domcontentloaded').catch(() => {}); result = { ok:true, clicked:found.target, target:found.target }; } }
-    else if (cmd === 'type' || cmd === 'set' || cmd === 'clear') { const found = await resolveLocator(page, target, opts); if (!found.ok) result = found; else { const value = cmd === 'clear' ? '' : (opts.value || opts._.join(' ')); await found.locator.fill(value).catch(async () => { await found.locator.click(); await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A'); await page.keyboard.insertText(value); }); const verification = await verify(page, { value }); result = { ok:verification.ok, action:cmd, typed:value, value, target:found.target, verification }; } }
-    else if (cmd === 'act') { const action = String(opts.action || opts.cmd || opts._[0] || 'click').toLowerCase(); const found = await resolveLocator(page, target, opts); if (!found.ok) result = found; else if (action === 'click') { await found.locator.click(); await page.waitForLoadState('domcontentloaded').catch(() => {}); result = { ok:true, action, target:found.target, verification:await verify(page, { text:opts.expectText || opts['expect-text'], url:opts.expectUrl || opts['expect-url'], selector:opts.expectSelector || opts['expect-selector'], value:opts.expectValue || opts['expect-value'] }) }; } else if (action === 'type' || action === 'set' || action === 'clear') { const value = action === 'clear' ? '' : (opts.value || opts._.slice(1).join(' ')); await found.locator.fill(value).catch(async () => { await found.locator.click(); await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A'); await page.keyboard.insertText(value); }); result = { ok:true, action, target:found.target, verification:await verify(page, { value:opts.expectValue || opts['expect-value'] || value }) }; } else if (action === 'press' || action === 'key') { await found.locator.press(opts.key || opts.name || opts._.slice(1).join(' ') || 'Enter'); result = { ok:true, action, target:found.target, verification:await verify(page, { text:opts.expectText || opts['expect-text'], url:opts.expectUrl || opts['expect-url'] }) }; } else result = { ok:false, error:`unknown act action: ${action}` }; }
+    else if (cmd === 'type' || cmd === 'set' || cmd === 'clear') { const found = await resolveLocator(page, target, opts); if (!found.ok) result = found; else { const value = cmd === 'clear' ? '' : (opts.value || opts._.join(' ')); await found.locator.fill(value).catch(async () => { await found.locator.click(); await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A'); await page.keyboard.insertText(value); }); if (opts['press-key']) await page.keyboard.press(opts['press-key']); const verification = await verify(page, { value }); result = { ok:verification.ok, action:cmd, typed:value, value, target:found.target, verification }; } }
+    else if (cmd === 'act') { const action = String(opts.action || opts.cmd || opts._[0] || 'click').toLowerCase(); const found = await resolveLocator(page, target, opts); if (!found.ok) result = found; else if (action === 'click') { await found.locator.click(); await page.waitForLoadState('domcontentloaded').catch(() => {}); result = { ok:true, action, target:found.target, verification:await verify(page, { text:opts.expectText || opts['expect-text'], url:opts.expectUrl || opts['expect-url'], selector:opts.expectSelector || opts['expect-selector'], value:opts.expectValue || opts['expect-value'] }) }; } else if (action === 'type' || action === 'set' || action === 'clear') { const value = action === 'clear' ? '' : (opts.value || opts._.slice(1).join(' ')); await found.locator.fill(value).catch(async () => { await found.locator.click(); await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A'); await page.keyboard.insertText(value); }); if (opts['press-key']) await page.keyboard.press(opts['press-key']); result = { ok:true, action, target:found.target, verification:await verify(page, { value:opts.expectValue || opts['expect-value'] || value }) }; } else if (action === 'press' || action === 'key') { await found.locator.press(opts.key || opts.name || opts._.slice(1).join(' ') || 'Enter'); result = { ok:true, action, target:found.target, verification:await verify(page, { text:opts.expectText || opts['expect-text'], url:opts.expectUrl || opts['expect-url'] }) }; } else result = { ok:false, error:`unknown act action: ${action}` }; }
     else if (cmd === 'key' || cmd === 'enter' || cmd === 'tab-key' || cmd === 'escape') { const name = cmd === 'enter' ? 'Enter' : cmd === 'tab-key' ? 'Tab' : cmd === 'escape' ? 'Escape' : (opts.name || opts._[0] || 'Enter'); await page.keyboard.press(name); result = { ok:true, key:name }; }
     else if (cmd === 'wait-for-text') { await page.getByText(opts.text || opts._.join(' '), { exact:false }).first().waitFor({ state:'visible', timeout:Number(opts.timeout || 15000) }); result = { ok:true, reason:'text' }; }
     else if (cmd === 'wait-for-selector') { await page.locator(opts.selector || opts._[0]).first().waitFor({ state:'visible', timeout:Number(opts.timeout || 15000) }); result = { ok:true, reason:'selector' }; }

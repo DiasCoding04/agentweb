@@ -613,7 +613,9 @@
       const message = input.value.trim();
       if (!message) return;
 
+      const conversation = currentConversation();
       const sessionId = activeId;
+      const forceReset = !!conversation && conversation.messages.length === 0;
       input.value = "";
       appendMessage("user", message);
       send.disabled = true;
@@ -624,7 +626,7 @@
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ sessionId, message, model: modelSelect.value })
+          body: JSON.stringify({ sessionId, message, model: modelSelect.value, forceReset })
         });
         const data = await res.json();
         if (!data.ok) throw new Error(data.error || "Lỗi không rõ.");

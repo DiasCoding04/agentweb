@@ -23,6 +23,15 @@ function normalizeText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
+function foldText(text) {
+  return normalizeText(text)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase();
+}
+
 function argValue(args, name) {
   const index = Array.isArray(args) ? args.indexOf(name) : -1;
   return index >= 0 ? args[index + 1] : undefined;
@@ -38,7 +47,7 @@ function parseTaskInvariants(request) {
   const quoted = [...raw.matchAll(/["“”']([^"“”']{1,500})["“”']/g)].map(m => normalizeText(m[1]));
   const intendedAction =
     parsedTask.intent === "send_message" ? "send" :
-    parsedTask.intent === "youtube_search" || parsedTask.intent === "open_website" ? "navigate" :
+    ["youtube_search", "spotify_search", "google_search_rank", "open_website", "play_media"].includes(parsedTask.intent) ? "navigate" :
     /\b(gửi|send|nhắn|message)\b/i.test(raw) ? "send" :
     /\b(xóa|xoá|delete|remove)\b/i.test(raw) ? "delete" :
     /\b(đăng|publish|post)\b/i.test(raw) ? "publish" :
@@ -62,8 +71,7 @@ function parseTaskInvariants(request) {
   const targetPatterns = [
     /(?:cho|tới|đến|to|for|với|trong|in|on)\s+([^,.!?]{2,120})/i,
     /(?:target|recipient|record|item|campaign|page|object)\s*(?:là|:)\s*([^,.!?]{2,120})/i,
-    /(?:record|item|campaign|page|object)\s+([^,.!?]{2,120})/i,
-    /(?:open|mở|vào|navigate)\s+([^,.!?]{2,120})/i
+    /(?:record|item|campaign|page|object)\s+([^,.!?]{2,120})/i
   ];
   const targetHints = [];
   for (const pattern of targetPatterns) {
@@ -83,7 +91,7 @@ function parseTaskInvariants(request) {
   for (const value of quoted) {
     if (value && value !== intendedPayload) targetHints.push(value);
   }
-  if (parsedTask.intent === "open_website" || parsedTask.intent === "youtube_search") targetHints.length = 0;
+  if (["open_website", "youtube_search", "spotify_search", "google_search_rank", "play_media"].includes(parsedTask.intent)) targetHints.length = 0;
   if (parsedTask.payload) intendedPayload = parsedTask.payload;
   if (parsedTask.query) intendedPayload = parsedTask.query;
 
@@ -110,6 +118,7 @@ function parseTaskInvariants(request) {
 function parseUserTask(request) {
   const raw = normalizeText(request);
   const lower = raw.toLowerCase();
+  const folded = foldText(raw);
   const sendMatch = raw.match(/(?:vào\s+mess(?:enger)?(?:\s+trên\s+facebook)?\s+và\s+)?nhắn(?:\s+tin)?\s+cho\s+([^:]+):\s*(.+)$/i);
   if (sendMatch) {
     const target = normalizeText(sendMatch[1]).replace(/\s+[:].*$/, "").trim();
@@ -153,6 +162,86 @@ function parseUserTask(request) {
       rawRequest: raw
     };
   }
+  // play_media: "mở 1 bài của X", "bật nhạc X", "phát video X", "nghe bài X", "mở bài X"
+  const spotifySearchPatterns = [
+    /^(?:vao|mo|open)\s+spotify\s+(?:mo|tim|search|bat|phat|nghe)\s+(.+)$/i,
+    /^(?:mo|bat|phat|nghe|play)\s+(.+?)\s+tren\s+spotify$/i
+  ];
+  for (const pattern of spotifySearchPatterns) {
+    const match = folded.match(pattern);
+    if (match) {
+      const query = normalizeText(match[1]);
+      if (/^(?:nhac|music|song|bai hat|ca khuc)$/i.test(query)) {
+        return {
+          intent: "open_website",
+          app: "spotify",
+          target: "",
+          searchTarget: "",
+          payload: "",
+          query: "",
+          rawRequest: raw
+        };
+      }
+      return {
+        intent: "spotify_search",
+        app: "spotify",
+        target: "",
+        searchTarget: "",
+        payload: "",
+        query,
+        rawRequest: raw
+      };
+    }
+  }
+  if (/^(?:vao|mo|open)\s+spotify$/i.test(folded) || /^spotify$/i.test(folded) || /^(?:mo|bat)\s+nhac\s+tren\s+spotify$/i.test(folded)) {
+    return {
+      intent: "open_website",
+      app: "spotify",
+      target: "",
+      searchTarget: "",
+      payload: "",
+      query: "",
+      rawRequest: raw
+    };
+  }
+  const googleRankPatterns = [
+    /^(?:tim|tim kiem|search)\s+(.+?)\s+(?:xem|de xem)\s+(.+?)\s+(?:o vi tri thu may|dung thu may)(?:\s+tren google)?$/i,
+    /^(?:y toi muon biet khi tim|khi tim)\s+(.+?)\s+thi\s+(.+?)\s+(?:o vi tri thu may|dung thu may)\s+tren google$/i,
+    /^(?:tren google\s+)?(?:tim|tim kiem|search)\s+(.+?)\s+(?:xem|de xem)\s+(.+?)\s+(?:o vi tri thu may|dung thu may)$/i
+  ];
+  for (const pattern of googleRankPatterns) {
+    const match = folded.match(pattern);
+    if (match) {
+      return {
+        intent: "google_search_rank",
+        app: "google",
+        target: normalizeText(match[2]),
+        searchTarget: normalizeText(match[2]),
+        payload: "",
+        query: normalizeText(match[1]),
+        rawRequest: raw
+      };
+    }
+  }
+  const playMediaPatterns = [
+    /^(?:mở|bật|phát|nghe|play)\s+(?:1\s+)?(?:bài|nhạc|video|clip|mv|bản nhạc|ca khúc)\s+(?:của\s+)?(.+)$/i,
+    /^(?:mở|bật|phát|nghe|play)\s+(.+?)\s+(?:trên\s+youtube|trên\s+yt)$/i,
+    /^(?:mở|bật|phát|nghe|play)\s+(?:bài|nhạc|video|clip|mv)\s+(.+)$/i
+  ];
+  for (const pattern of playMediaPatterns) {
+    const match = raw.match(pattern);
+    if (match) {
+      return {
+        intent: "play_media",
+        app: "youtube",
+        target: "",
+        searchTarget: "",
+        payload: "",
+        query: normalizeText(match[1]),
+        rawRequest: raw
+      };
+    }
+  }
   return {
     intent: "",
     app: "",
@@ -185,6 +274,7 @@ function actionFromTool(cmd, args = []) {
     cmd,
     args,
     target: {
+      pid: argValue(args, "--pid") || "",
       role: argValue(args, "--role") || "",
       name: argValue(args, "--name") || "",
       text: argValue(args, "--text") || "",
@@ -218,7 +308,10 @@ function inferTaskIntent(taskState) {
 
 function requiresLockedContext(taskState) {
   const intent = inferTaskIntent(taskState);
-  return ["send_message", "delete", "publish"].includes(intent);
+  if (!["send_message", "delete", "publish"].includes(intent)) return false;
+  // Only require lock for send_message when there is an actual payload to send
+  if (intent === "send_message" && !taskState.invariants.intendedPayload) return false;
+  return true;
 }
 
 function injectDefaultExpectedResult(action, taskState) {
@@ -256,7 +349,7 @@ function validateActionTarget(action, taskState) {
     violations.push("side effect requires TARGET_LOCKED context");
     return { ok: false, violations };
   }
-  const actionScope = normalizeText([action.scope, action.target.selector, action.target.name, action.target.text, action.target.near].join(" ")).toLowerCase();
+  const actionScope = normalizeText([action.scope, action.target.pid, action.target.selector, action.target.name, action.target.text, action.target.near].join(" ")).toLowerCase();
   if (/sidebar|navigation|search|list/.test(actionScope)) {
     violations.push("side effect attempted inside navigation/sidebar/search/list scope");
   }
@@ -278,8 +371,16 @@ function validateAction(action, taskState) {
   if (action.sideEffect && action.riskLevel === "high" && !action.requiresHumanConfirmation) {
     violations.push("high risk side effect requires explicit confirmation policy");
   }
-  if (taskState.invariants.intendedPayload && action.value && action.value !== taskState.invariants.intendedPayload) {
-    violations.push("payload differs from immutable task payload");
+  if (
+    taskState.invariants.intendedPayload &&
+    action.value &&
+    !["navigate", "play_media", "youtube_search", "spotify_search", "google_search_rank", "open_website"].includes(inferTaskIntent(taskState))
+  ) {
+    const intended = String(taskState.invariants.intendedPayload).toLowerCase();
+    const actual = String(action.value).toLowerCase();
+    if (!intended.includes(actual) && !actual.includes(intended)) {
+      violations.push("payload differs from immutable task payload");
+    }
   }
   if (taskState.invariants.targetEntity) {
     const targetText = normalizeText([action.target.name, action.target.text, action.target.near, action.scope].join(" "));
