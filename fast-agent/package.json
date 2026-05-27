@@ -1,0 +1,13 @@
+{
+  "name": "openclaw-fast-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node runtime-policy-test.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.53.0"
+  }
+}
