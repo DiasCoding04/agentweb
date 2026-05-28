@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tasklist /FI \"PID eq 7212\")",
+      "Bash(tasklist /FI \"PID eq 12540\")",
+      "Bash(powershell.exe *)",
+      "Bash(netstat -ano)",
+      "Bash(/c/Users/pc/Desktop/AI WEB AGENT/venv/Scripts/python.exe *)",
+      "Bash(curl -sS http://127.0.0.1:8000/api/history)"
+    ]
+  }
+}
