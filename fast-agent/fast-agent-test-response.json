@@ -1,0 +1,26 @@
+﻿{
+    "ok":  true,
+    "ms":  2827,
+    "final":  "Bạn đang ở trang \u0027Thẻ mới\u0027 (New Tab Page) của trình duyệt Chrome (địa chỉ: chrome://new-tab-page/). Trang này hiện tại đang trống.",
+    "trace":  [
+                  {
+                      "type":  "model",
+                      "ms":  1370,
+                      "raw":  "{\"tool\":{\"cmd\":\"read\",\"args\":[]},\"note\":\"Đang đọc nội dung trang trình duyệt hiện tại để xác định bạn đang ở đâu.\"}"
+                  },
+                  {
+                      "type":  "tool",
+                      "cmd":  "read",
+                      "args":  [
+
+                               ],
+                      "ms":  139,
+                      "ok":  true
+                  },
+                  {
+                      "type":  "model",
+                      "ms":  1317,
+                      "raw":  "{\"final\":\"Bạn đang ở trang \u0027Thẻ mới\u0027 (New Tab Page) của trình duyệt Chrome (địa chỉ: chrome://new-tab-page/). Trang này hiện tại đang trống.\"}"
+                  }
+              ]
+}
