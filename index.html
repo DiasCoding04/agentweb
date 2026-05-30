@@ -535,6 +535,27 @@
   .btn-send:hover { background: var(--accent2); transform: scale(1.05); }
   .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+  .btn-stop {
+    height: 34px;
+    padding: 0 12px;
+    background: transparent;
+    border: 1px solid #e85d5d;
+    border-radius: 8px;
+    color: #ff8a8a;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+
+  .btn-stop:hover { background: rgba(232, 93, 93, 0.12); color: #ffb4b4; }
+  .btn-stop:disabled { opacity: 0.45; cursor: not-allowed; }
+
   .input-hint {
     font-size: 11px;
     color: var(--muted);
@@ -610,6 +631,10 @@
         <span class="select-label">Planner</span>
         <select id="plannerModel" class="select-control" onchange="saveConfig()"></select>
       </label>
+      <label class="select-wrap">
+        <span class="select-label">Vision</span>
+        <select id="visionMode" class="select-control" onchange="saveConfig()"></select>
+      </label>
     </div>
     <div class="input-wrap">
       <textarea
@@ -619,6 +644,12 @@
         onkeydown="handleKey(event)"
         oninput="autoResize(this)"
       ></textarea>
+      <button type="button" class="btn-stop" id="stopBtn" onclick="stopTask()" title="Dừng hẳn task đang chạy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="6" y="6" width="12" height="12" rx="1"/>
+        </svg>
+        Dừng
+      </button>
       <button class="btn-send" id="sendBtn" onclick="sendMessage()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="2.5">
           <line x1="22" y1="2" x2="11" y2="13"/>
@@ -636,8 +667,10 @@
 <script>
 let currentChatId = null;
 let isLoading = false;
+let activeStreamAbort = null;
 let modelOptions = [];
-let modelConfig = { executor_model: '', planner_model: '' };
+let visionModeOptions = [];
+let modelConfig = { executor_model: '', planner_model: '', vision_mode: 'auto' };
 let currentRunUsage = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────
@@ -651,14 +684,17 @@ async function loadConfig() {
   const res = await fetch('/api/config');
   const data = await res.json();
   modelOptions = data.models || [];
+  visionModeOptions = data.vision_modes || [];
   modelConfig.executor_model = data.executor_model;
   modelConfig.planner_model = data.planner_model;
+  modelConfig.vision_mode = data.vision_mode || 'auto';
   renderModelOptions();
 }
 
 function renderModelOptions() {
   const executor = document.getElementById('executorModel');
   const planner = document.getElementById('plannerModel');
+  const vision = document.getElementById('visionMode');
   const optionHtml = modelOptions.map(model => `
     <option value="${escHtml(model.id)}">${escHtml(model.label)}</option>
   `).join('');
@@ -666,6 +702,17 @@ function renderModelOptions() {
   planner.innerHTML = optionHtml;
   executor.value = modelConfig.executor_model || modelOptions[0]?.id || '';
   planner.value = modelConfig.planner_model || modelOptions[0]?.id || '';
+  if (vision) {
+    const visionHtml = (visionModeOptions.length ? visionModeOptions : [
+      { id: 'auto', label: 'Vision tự động' },
+      { id: 'on', label: 'Luôn vision' },
+      { id: 'off', label: 'Chỉ text/DOM' },
+    ]).map(mode => `
+      <option value="${escHtml(mode.id)}" title="${escHtml(mode.description || '')}">${escHtml(mode.label)}</option>
+    `).join('');
+    vision.innerHTML = visionHtml;
+    vision.value = modelConfig.vision_mode || 'auto';
+  }
 }
 
 async function saveConfig() {
@@ -679,6 +726,7 @@ async function saveConfig() {
   modelOptions = data.models || modelOptions;
   modelConfig.executor_model = data.executor_model;
   modelConfig.planner_model = data.planner_model;
+  modelConfig.vision_mode = data.vision_mode || modelConfig.vision_mode;
   renderModelOptions();
   updateTopbarMeta();
 }
@@ -687,7 +735,13 @@ function getSelectedModels() {
   return {
     executor_model: document.getElementById('executorModel')?.value || modelConfig.executor_model,
     planner_model: document.getElementById('plannerModel')?.value || modelConfig.planner_model,
+    vision_mode: document.getElementById('visionMode')?.value || modelConfig.vision_mode || 'auto',
   };
+}
+
+function visionModeLabel(modeId) {
+  const found = visionModeOptions.find(item => item.id === modeId);
+  return found ? found.label : modeId || 'auto';
 }
 
 function modelLabel(modelId) {
@@ -794,7 +848,7 @@ function updateTopbarMeta(chat = null, usage = null) {
     parts.push(new Date(chat.created_at).toLocaleDateString('vi-VN'));
   }
 
-  parts.push(`${modelLabel(selected.executor_model)} / ${modelLabel(selected.planner_model)}`);
+  parts.push(`${modelLabel(selected.executor_model)} / ${modelLabel(selected.planner_model)} / ${visionModeLabel(selected.vision_mode)}`);
 
   if (activeUsage?.totals) {
     parts.push(`${formatVnd(activeUsage.totals.cost_vnd)} • ${formatInt(activeUsage.totals.total_tokens)} tok • ${formatDuration(activeUsage.elapsed_seconds || 0)}`);
@@ -814,6 +868,38 @@ async function deleteChat(e, chatId) {
   else await loadChatList();
 }
 
+function setStopButtonVisible(visible) {
+  const stopBtn = document.getElementById('stopBtn');
+  if (!stopBtn) return;
+  stopBtn.style.display = visible ? 'flex' : 'none';
+  stopBtn.disabled = false;
+}
+
+async function stopTask() {
+  if (!isLoading || !currentChatId) return;
+
+  const stopBtn = document.getElementById('stopBtn');
+  if (stopBtn) stopBtn.disabled = true;
+  setStatus(true, 'Đang dừng task...');
+  document.getElementById('stepHint').textContent = 'Đang gửi lệnh dừng tới server...';
+
+  try {
+    await fetch('/api/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: currentChatId }),
+    });
+  } catch (e) {
+    /* vẫn hủy stream phía client */
+  }
+
+  if (activeStreamAbort) {
+    try {
+      activeStreamAbort.abort();
+    } catch (e) {}
+  }
+}
+
 // ── Send message ──────────────────────────────────────────────────────────
 async function sendMessage() {
   if (isLoading) return;
@@ -830,11 +916,14 @@ async function sendMessage() {
   currentRunUsage = null;
   setStatus(true, 'Đang gửi lệnh...');
   document.getElementById('sendBtn').disabled = true;
+  setStopButtonVisible(true);
 
   const now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   appendMessage('user', task, now, true);
 
   const aiId = 'ai-' + Date.now();
+  const streamAbort = new AbortController();
+  activeStreamAbort = streamAbort;
   appendThinking(aiId);
   updateTopbarMeta();
 
@@ -845,11 +934,13 @@ async function sendMessage() {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: streamAbort.signal,
       body: JSON.stringify({
         chat_id: currentChatId,
         task,
         executor_model: selectedModels.executor_model,
         planner_model: selectedModels.planner_model,
+        vision_mode: selectedModels.vision_mode,
       }),
     });
 
@@ -906,6 +997,15 @@ async function sendMessage() {
         setStatus(false, 'Sẵn sàng');
         updateTopbarMeta(null, currentRunUsage);
       }
+
+      if (data.type === 'stopped') {
+        completed = true;
+        currentRunUsage = data.usage || currentRunUsage;
+        finishThinking(aiId, data.text || 'Đã dừng task.', 'Đã dừng', currentRunUsage, false);
+        document.getElementById('stepHint').textContent = '';
+        setStatus(false, 'Sẵn sàng');
+        updateTopbarMeta(null, currentRunUsage);
+      }
     });
 
     while (true) {
@@ -922,11 +1022,18 @@ async function sendMessage() {
       setStatus(false, 'Sẵn sàng');
     }
   } catch (e) {
-    finishThinking(aiId, 'Lỗi kết nối: ' + e.message, 'Lỗi', currentRunUsage, false);
+    const aborted = e && (e.name === 'AbortError' || streamAbort.signal.aborted);
+    if (aborted && !completed) {
+      finishThinking(aiId, 'Đã dừng task. Nếu trình duyệt vẫn đang thao tác, đợi vài giây hoặc bấm Dừng lại.', 'Đã dừng', currentRunUsage, false);
+    } else if (!completed) {
+      finishThinking(aiId, 'Lỗi kết nối: ' + e.message, 'Lỗi', currentRunUsage, false);
+    }
     document.getElementById('stepHint').textContent = '';
     setStatus(false, 'Sẵn sàng');
   } finally {
     isLoading = false;
+    activeStreamAbort = null;
+    setStopButtonVisible(false);
     document.getElementById('sendBtn').disabled = false;
     await loadChatList();
 
@@ -1037,10 +1144,10 @@ function finishThinking(id, text, finalStatus, usage = null, waiting = false) {
 
 function renderMetadataHtml(metadata) {
   if (!metadata?.usage) return '';
-  return `<div class="msg-meta" style="display:block">${renderUsageHtml(metadata.usage, metadata.state === 'needs_input')}</div>`;
+  return `<div class="msg-meta" style="display:block">${renderUsageHtml(metadata.usage, metadata.state === 'needs_input', metadata.state)}</div>`;
 }
 
-function renderUsageHtml(usage, waiting = false) {
+function renderUsageHtml(usage, waiting = false, messageState = null) {
   const executor = usage.executor || null;
   const planner = usage.planner || null;
   const totals = usage.totals || null;
@@ -1086,6 +1193,8 @@ function renderUsageHtml(usage, waiting = false) {
 
   if (waiting || usage.waiting_for_user) {
     rows.push(`<div class="meta-note">Agent đã dừng lượt hiện tại và đang chờ chỉ dẫn tiếp theo của bạn.</div>`);
+  } else if (messageState === 'stopped') {
+    rows.push(`<div class="meta-note">Task đã bị dừng thủ công — trình duyệt vẫn mở, bạn có thể gửi lệnh mới.</div>`);
   }
 
   return rows.join('');

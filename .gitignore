@@ -1,3 +1,8 @@
-node_modules/
-.wwebjs_auth/
-.wwebjs_cache/
+venv/
+__pycache__/
+*.py[cod]
+local/
+.env
+chat_history.json
+repomix-output.xml
+*.png
