@@ -6,3 +6,5 @@ local/
 chat_history.json
 repomix-output.xml
 *.png
+service_account.json
+node_modules/

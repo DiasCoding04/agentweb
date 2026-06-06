@@ -18,7 +18,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from config import get_gemini_api_key, verify_gemini_api_key
+from config import (
+    get_gemini_api_key,
+    verify_gemini_api_key,
+    use_vertex,
+    get_vertex_project,
+    get_vertex_location,
+    get_vertex_credentials
+)
 
 load_dotenv()
 logging.getLogger("browser_use").setLevel(logging.WARNING)
@@ -64,17 +71,25 @@ GEMINI_PRICING_SOURCE    = "https://ai.google.dev/gemini-api/docs/pricing"
 GEMINI_PRICING_UPDATED_AT = "2026-05-27"
 
 MODEL_OPTIONS = [
+    {"id": "gemini-3.1-flash-lite", "label": "Gemini 3.1 Flash-Lite",
+     "description": "Mặc định: siêu nhanh, siêu rẻ, tối ưu cho agent."},
+    {"id": "gemini-3.1-pro",        "label": "Gemini 3.1 Pro",
+     "description": "Planner mới: suy luận mạnh mẽ, thiết lập kế hoạch phức tạp."},
+    {"id": "gemini-3.5-flash",      "label": "Gemini 3.5 Flash",
+     "description": "Cân bằng tốc độ/độ chính xác."},
     {"id": "gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash-Lite",
-     "description": "Nhanh nhất, rẻ nhất cho đa số tác vụ browser."},
+     "description": "Nhanh, rẻ cho đa số tác vụ."},
     {"id": "gemini-2.5-flash",      "label": "Gemini 2.5 Flash",
-     "description": "Cân bằng giữa tốc độ, độ chính xác và chi phí."},
+     "description": "Cân bằng tốc độ/độ chính xác."},
     {"id": "gemini-2.5-pro",        "label": "Gemini 2.5 Pro",
-     "description": "Mạnh nhất, phù hợp tác vụ khó và dài."},
+     "description": "Mạnh nhất thế hệ 2.5, tác vụ khó/dài."},
+    {"id": "gemini-2.0-flash",      "label": "Gemini 2.0 Flash",
+     "description": "Nhanh, ổn định cho tác vụ hàng loạt."},
 ]
 MODEL_IDS      = {item["id"] for item in MODEL_OPTIONS}
 MODEL_DEFAULTS = {
-    "executor_model": "gemini-2.5-flash-lite",
-    "planner_model": "gemini-2.5-flash",
+    "executor_model": "gemini-3.1-flash-lite",
+    "planner_model": "gemini-3.5-flash",
     "vision_mode": "auto",
 }
 MODEL_CONFIG = dict(MODEL_DEFAULTS)
@@ -84,9 +99,13 @@ VISION_MODE_DEFAULT = "auto"
 MAX_VISION_STEPS_PER_TASK = 12
 
 MODEL_PRICING_USD_PER_1M = {
+    "gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50,  "cached": 0.025},
+    "gemini-3.1-pro":        {"input": 2.00, "output": 12.00, "cached": 0.20},
+    "gemini-3.5-flash":      {"input": 1.50, "output": 9.00,  "cached": 0.15},
     "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40,  "cached": 0.01},
     "gemini-2.5-flash":      {"input": 0.30, "output": 2.50,  "cached": 0.03},
     "gemini-2.5-pro":        {"input": 1.25, "output": 10.00, "cached": 0.125},
+    "gemini-2.0-flash":      {"input": 0.075, "output": 0.30, "cached": 0.0075},
 }
 
 STUCK_ACTIONS = {
@@ -133,7 +152,7 @@ def _init_key_check() -> None:
 
 # Run synchronously at import time (server start). After this, _key_ok is reliable
 # for the lifetime of the process. If the key changes, restart the server.
-if GEMINI_API_KEY:
+if not use_vertex() and GEMINI_API_KEY:
     try:
         _init_key_check()
     except Exception as exc:
@@ -351,6 +370,37 @@ def make_llm(model: str, callback_handler: "UsageMetadataCallbackHandler | None"
     # exploring multiple token candidates. temperature=0 = greedy decode = faster
     # first-token latency and fully reproducible actions (critical for long tasks).
     callbacks = [callback_handler] if callback_handler else None
+
+    if use_vertex():
+        try:
+            from langchain_google_vertexai import ChatVertexAI
+            from google.oauth2 import service_account
+        except ImportError as exc:
+            raise RuntimeError(
+                "Dang dinh dung Vertex AI nhung chua cai dat langchain-google-vertexai. "
+                "Chay: pip install langchain-google-vertexai google-cloud-aiplatform"
+            ) from exc
+
+        creds_path = get_vertex_credentials()
+        if creds_path:
+            credentials = service_account.Credentials.from_service_account_file(creds_path)
+        else:
+            credentials = None
+
+        location = get_vertex_location()
+        kwargs = {}
+        if location == "global":
+            kwargs["api_endpoint"] = "aiplatform.googleapis.com"
+
+        return ChatVertexAI(
+            model=model,
+            project=get_vertex_project(),
+            location=location,
+            credentials=credentials,
+            temperature=0,
+            **kwargs
+        )
+
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=GEMINI_API_KEY,
@@ -931,7 +981,7 @@ async def chat(req: ChatRequest):
             return
 
         # FIX 2 (continued): use cached key check instead of calling LLM every time
-        if not _key_ok:
+        if not use_vertex() and not _key_ok:
             msg = _key_err or "API key Gemini không hợp lệ."
             await add_message_async(req.chat_id, "assistant", msg, {"state": "error"})
             yield sse({"type": "error", "text": msg})

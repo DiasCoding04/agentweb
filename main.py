@@ -3,28 +3,69 @@ import logging
 
 from dotenv import load_dotenv
 from browser_use import Agent, Browser, BrowserConfig
-from langchain_google_genai import ChatGoogleGenerativeAI
 
-from config import get_gemini_api_key, verify_gemini_api_key
+from config import get_gemini_api_key, verify_gemini_api_key, use_vertex, get_vertex_project, get_vertex_location, get_vertex_credentials
 
 load_dotenv()
 logging.getLogger("browser_use").setLevel(logging.WARNING)
 
-ok, msg = verify_gemini_api_key()
-if not ok:
-    raise SystemExit(msg + "\nChay Setup Gemini Key.cmd de thiet lap 1 lan.")
+EXECUTOR_MODEL = "gemini-3.1-flash-lite"
+PLANNER_MODEL  = "gemini-3.5-flash"
 
-API_KEY = get_gemini_api_key()
 
-executor_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash-lite",
-    google_api_key=API_KEY,
-)
+def make_llm_vertex(
+    model: str,
+    temperature: float = 0,
+):
+    try:
+        from langchain_google_vertexai import ChatVertexAI
+        from google.oauth2 import service_account
+    except ImportError as exc:
+        raise SystemExit(
+            "Thieu langchain-google-vertexai cho Vertex AI. "
+            "Chay: pip install langchain-google-vertexai google-cloud-aiplatform"
+        ) from exc
 
-planner_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=API_KEY,
-)
+    creds_path = get_vertex_credentials()
+    if creds_path:
+        credentials = service_account.Credentials.from_service_account_file(creds_path)
+    else:
+        credentials = None
+
+    location = get_vertex_location()
+    kwargs = {}
+    if location == "global":
+        kwargs["api_endpoint"] = "aiplatform.googleapis.com"
+
+    return ChatVertexAI(
+        model=model,
+        project=get_vertex_project(),
+        location=location,
+        credentials=credentials,
+        temperature=temperature,
+        **kwargs
+    )
+
+
+if use_vertex():
+    print(f"[Vertex AI] Project={get_vertex_project()}, Location={get_vertex_location()}")
+    executor_llm = make_llm_vertex(EXECUTOR_MODEL)
+    planner_llm  = make_llm_vertex(PLANNER_MODEL)
+else:
+    ok, msg = verify_gemini_api_key()
+    if not ok:
+        raise SystemExit(msg + "\nChay Setup Gemini Key.cmd de thiet lap 1 lan.")
+    API_KEY = get_gemini_api_key()
+
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    executor_llm = ChatGoogleGenerativeAI(
+        model=EXECUTOR_MODEL,
+        google_api_key=API_KEY,
+    )
+    planner_llm = ChatGoogleGenerativeAI(
+        model=PLANNER_MODEL,
+        google_api_key=API_KEY,
+    )
 
 
 async def chat():

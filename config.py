@@ -37,6 +37,32 @@ def save_gemini_api_key(key: str) -> None:
     KEY_FILE.write_text(key, encoding="utf-8")
 
 
+def get_vertex_project() -> str | None:
+    return (
+        os.getenv("GOOGLE_CLOUD_PROJECT")
+        or os.getenv("GCLOUD_PROJECT")
+        or os.getenv("VERTEX_PROJECT")
+    ).strip() or None
+
+
+def get_vertex_location() -> str:
+    return (os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1").strip()
+
+
+def get_vertex_credentials() -> str | None:
+    path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if path and Path(path).exists():
+        return path
+    alt = ROOT / "service_account.json"
+    if alt.exists():
+        return str(alt)
+    return None
+
+
+def use_vertex() -> bool:
+    return bool(get_vertex_credentials() or get_vertex_project())
+
+
 def verify_gemini_api_key(key: str | None = None) -> tuple[bool, str]:
     """Kiểm tra key có gọi được Gemini không. Trả (ok, thông báo tiếng Việt)."""
     api_key = (key or get_gemini_api_key()).strip()
