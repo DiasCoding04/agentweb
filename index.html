@@ -4,23 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Browser Agent</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg:       #0d0f12;
-    --surface:  #13161b;
-    --border:   #1e2329;
-    --border2:  #252b33;
-    --accent:   #00e5a0;
-    --accent2:  #00b87a;
-    --text:     #e8edf3;
-    --muted:    #5a6474;
-    --user-bg:  #1a2035;
-    --ai-bg:    #111418;
-    --danger:   #ff4d6d;
-    --sidebar:  240px;
+  :root, [data-theme="dark"] {
+    --bg:             #0f121d; /* Midnight slate, softer than pitch black */
+    --surface:        #171c2a; /* Card/Panel background */
+    --sidebar-bg:     #0a0d16; /* Sidebar background (distinctly darker) */
+    --border:         #242c3f; /* Subtle section borders */
+    --border2:        #2d374d; /* More visible separator borders */
+    --accent:         #00f5a0; /* Neon teal accent */
+    --accent2:        #00c983; /* Hover teal */
+    --accent-subtle:  rgba(0, 245, 160, 0.08);
+    --text:           #f8fafc; /* Slate-50 bright text */
+    --muted:          #94a3b8; /* Slate-400 readable description text */
+    --user-bg:        linear-gradient(135deg, #2563eb, #1d4ed8); /* Nice royal blue gradient */
+    --user-text:      #ffffff;
+    --ai-bg:          #1e2538; /* Distinct AI message background */
+    --danger:         #ff4d6d;
+    --danger-hover:   #e63956;
+    --card-bg:        rgba(255, 255, 255, 0.03); /* Translucent card */
+    --card-border:    #242c3f;
+    --shadow:         0 8px 30px rgba(0, 0, 0, 0.35);
+    --shadow-sm:      0 2px 8px rgba(0, 0, 0, 0.15);
+    --input-bg:       #0e111a;
+    --input-border:   #242c3f;
+    --btn-send-icon:  #0d101a;
+    --sidebar:        260px;
+    --font-heading:   'Outfit', sans-serif;
+    --font-body:      'Inter', sans-serif;
+  }
+
+  [data-theme="light"] {
+    --bg:             #f1f5f9; /* Slate-100 */
+    --surface:        #ffffff; /* Clean white card/panel */
+    --sidebar-bg:     #f8fafc; /* Slate-50 sidebar */
+    --border:         #cbd5e1; /* Slate-300 crisp borders */
+    --border2:        #94a3b8; /* Slate-400 stronger borders */
+    --accent:         #0d9488; /* Dark teal accent, fully readable on white */
+    --accent2:        #0f766e; /* Hover dark teal */
+    --accent-subtle:  rgba(13, 148, 136, 0.08);
+    --text:           #0f172a; /* Slate-900 high contrast */
+    --muted:          #475569; /* Slate-600 highly legible */
+    --user-bg:        linear-gradient(135deg, #e0f2fe, #bae6fd); /* Sky blue gradient */
+    --user-text:      #075985; /* Sky-800 contrasting text */
+    --ai-bg:          #ffffff; /* Solid white bubble on light grey background */
+    --danger:         #dc2626; /* Deep red */
+    --danger-hover:   #b91c1c;
+    --card-bg:        #f8fafc; /* Card solid light background */
+    --card-border:    #cbd5e1;
+    --shadow:         0 10px 30px rgba(15, 23, 42, 0.08);
+    --shadow-sm:      0 2px 4px rgba(15, 23, 42, 0.04);
+    --input-bg:       #f8fafc;
+    --input-border:   #cbd5e1;
+    --btn-send-icon:  #ffffff;
+    --sidebar:        260px;
+    --font-heading:   'Outfit', sans-serif;
+    --font-body:      'Inter', sans-serif;
   }
 
   html, body { height: 100%; overflow: hidden; }
@@ -28,20 +69,22 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: var(--font-body), sans-serif;
     display: flex;
+    transition: background 0.2s ease, color 0.2s ease;
   }
 
   /* ── SIDEBAR ── */
   .sidebar {
     width: var(--sidebar);
     min-width: var(--sidebar);
-    background: var(--surface);
+    background: var(--sidebar-bg, var(--surface));
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    transition: background 0.2s ease, border-color 0.2s ease;
   }
 
   .sidebar-header {
@@ -50,7 +93,7 @@
   }
 
   .logo {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-heading), sans-serif;
     font-weight: 800;
     font-size: 15px;
     color: var(--accent);
@@ -80,19 +123,19 @@
     border: 1px solid var(--border2);
     border-radius: 8px;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: var(--font-body), sans-serif;
     font-size: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
   }
 
   .btn-new:hover {
     border-color: var(--accent);
     color: var(--accent);
-    background: rgba(0,229,160,0.05);
+    background: var(--accent-subtle);
   }
 
   .btn-new svg { flex-shrink: 0; }
@@ -113,12 +156,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: background 0.12s;
+    transition: background 0.12s ease, transform 0.12s ease;
     position: relative;
   }
 
   .chat-item:hover { background: var(--border); }
-  .chat-item.active { background: rgba(0,229,160,0.08); }
+  .chat-item.active { background: var(--accent-subtle); }
   .chat-item.active::before {
     content: '';
     position: absolute;
@@ -138,7 +181,7 @@
     line-height: 1.4;
   }
 
-  .chat-item.active .chat-item-text { color: var(--text); }
+  .chat-item.active .chat-item-text { color: var(--text); font-weight: 500; }
 
   .chat-item-del {
     opacity: 0;
@@ -148,7 +191,7 @@
     cursor: pointer;
     padding: 2px;
     border-radius: 4px;
-    transition: all 0.12s;
+    transition: all 0.12s ease;
     flex-shrink: 0;
   }
 
@@ -192,10 +235,12 @@
     justify-content: space-between;
     flex-shrink: 0;
     background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
   }
 
   .chat-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-heading), sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--text);
@@ -209,11 +254,84 @@
     max-width: 56%;
   }
 
+  .theme-toggle {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+
+  .theme-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .theme-icon-sun,
+  [data-theme="light"] .theme-icon-moon {
+    display: none;
+  }
+
+  [data-theme="light"] .theme-icon-sun {
+    display: block;
+  }
+
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(320px, 0.5fr) minmax(0, 1.5fr);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chat-pane,
+  .activity-pane {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .activity-pane {
+    border-left: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 72%, var(--bg));
+  }
+
+  .pane-head {
+    height: 48px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .pane-title {
+    font-family: var(--font-heading), sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .pane-subtle {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
   /* ── MESSAGES ── */
   .messages {
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 18px;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -230,6 +348,7 @@
     justify-content: center;
     gap: 12px;
     color: var(--muted);
+    animation: fadeUp 0.3s ease;
   }
 
   .empty-icon {
@@ -239,7 +358,7 @@
   }
 
   .empty-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-heading), sans-serif;
     font-weight: 700;
     font-size: 16px;
     color: var(--text);
@@ -257,27 +376,29 @@
   }
 
   .suggestion {
-    padding: 7px 12px;
-    border: 1px solid var(--border2);
+    padding: 8px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 20px;
     font-size: 11px;
     color: var(--muted);
     cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'DM Mono', monospace;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
   }
 
   .suggestion:hover {
     border-color: var(--accent);
     color: var(--accent);
-    background: rgba(0,229,160,0.05);
+    background: var(--accent-subtle);
+    transform: translateY(-1px);
   }
 
   /* Messages */
-  .msg { display: flex; gap: 12px; animation: fadeUp 0.2s ease; }
+  .msg { display: flex; gap: 12px; animation: fadeUp 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
 
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
@@ -292,16 +413,17 @@
     font-size: 14px;
     flex-shrink: 0;
     margin-top: 2px;
+    box-shadow: var(--shadow-sm);
   }
 
   .msg.user .msg-avatar {
-    background: var(--user-bg);
-    border: 1px solid var(--border2);
+    background: var(--surface);
+    border: 1px solid var(--border);
   }
 
   .msg.ai .msg-avatar {
-    background: rgba(0,229,160,0.1);
-    border: 1px solid rgba(0,229,160,0.2);
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent);
   }
 
   .msg-body { max-width: 72%; display: flex; flex-direction: column; gap: 4px; }
@@ -309,18 +431,20 @@
 
   .msg-bubble {
     padding: 10px 14px;
-    border-radius: 12px;
+    border-radius: 14px;
     font-size: 13px;
     line-height: 1.65;
     white-space: pre-wrap;
     word-break: break-word;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
   }
 
   .msg.user .msg-bubble {
     background: var(--user-bg);
-    border: 1px solid var(--border2);
+    border: 1px solid transparent;
     border-top-right-radius: 4px;
-    color: var(--text);
+    color: var(--user-text, var(--text));
   }
 
   .msg.ai .msg-bubble {
@@ -361,12 +485,10 @@
   .msg-steps {
     display: none;
     margin-top: 8px;
-    padding: 10px 12px;
-    background: rgba(255,255,255,0.02);
+    padding: 12px 14px;
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
-    max-height: 180px;
-    overflow-y: auto;
   }
 
   .msg-steps::-webkit-scrollbar { width: 4px; }
@@ -374,45 +496,64 @@
 
   .step-item {
     display: flex;
-    gap: 10px;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
   }
 
   .step-item:last-child { border-bottom: none; }
 
   .step-num {
     color: var(--accent);
-    font-size: 11px;
-    min-width: 28px;
+    font-size: 13px;
+    min-width: 32px;
     flex-shrink: 0;
+    font-weight: 700;
   }
 
   .step-main {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 5px;
     min-width: 0;
   }
 
   .step-action {
-    font-size: 11px;
+    font-size: 13.5px;
     color: var(--text);
     text-transform: capitalize;
+    font-weight: 600;
   }
 
   .step-goal {
-    font-size: 11px;
+    font-size: 12.5px;
     color: var(--muted);
-    line-height: 1.45;
+    line-height: 1.5;
     word-break: break-word;
+  }
+
+  .step-eval, .step-memory {
+    font-size: 12px;
+    line-height: 1.5;
+    word-break: break-word;
+    margin-top: 3px;
+  }
+
+  .step-eval {
+    color: #ffd166;
+    opacity: 0.95;
+  }
+
+  .step-memory {
+    color: #4ea8de;
+    opacity: 0.95;
   }
 
   .msg-meta {
     display: none;
     margin-top: 6px;
     padding: 8px 10px;
-    background: rgba(255,255,255,0.02);
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
     font-size: 10px;
@@ -436,7 +577,7 @@
     padding: 3px 7px;
     border-radius: 999px;
     border: 1px solid var(--border2);
-    background: rgba(255,255,255,0.03);
+    background: var(--bg);
     color: var(--text);
   }
 
@@ -445,12 +586,68 @@
     color: #ffd166;
   }
 
+  .activity-feed {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .activity-feed::-webkit-scrollbar { width: 4px; }
+  .activity-feed::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .activity-empty {
+    flex: 1;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.55;
+    padding: 20px;
+  }
+
+  .activity-card {
+    border: 1px solid var(--border);
+    background: var(--ai-bg);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fadeUp 0.2s ease;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .activity-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .activity-result {
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
   /* ── INPUT ── */
   .input-area {
     padding: 16px 24px 20px;
     background: var(--surface);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
   }
 
   .control-row {
@@ -472,36 +669,45 @@
     font-size: 10px;
     color: var(--muted);
     padding-left: 2px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
   .select-control {
     width: 100%;
     padding: 9px 11px;
     border-radius: 10px;
-    border: 1px solid var(--border2);
-    background: var(--bg);
+    border: 1px solid var(--input-border, var(--border2));
+    background: var(--input-bg, var(--bg));
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: var(--font-body), sans-serif;
     font-size: 12px;
     outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
 
   .select-control:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-subtle);
   }
 
   .input-wrap {
     display: flex;
     align-items: flex-end;
     gap: 10px;
-    background: var(--bg);
-    border: 1px solid var(--border2);
+    background: var(--input-bg, var(--bg));
+    border: 1px solid var(--input-border, var(--border2));
     border-radius: 12px;
     padding: 10px 10px 10px 16px;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
   }
 
-  .input-wrap:focus-within { border-color: var(--accent); }
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-subtle), inset 0 1px 2px rgba(0,0,0,0.03);
+  }
 
   textarea {
     flex: 1;
@@ -509,7 +715,7 @@
     border: none;
     outline: none;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
+    font-family: var(--font-body), sans-serif;
     font-size: 13px;
     line-height: 1.6;
     resize: none;
@@ -530,6 +736,7 @@
     justify-content: center;
     flex-shrink: 0;
     transition: all 0.15s;
+    box-shadow: var(--shadow-sm);
   }
 
   .btn-send:hover { background: var(--accent2); transform: scale(1.05); }
@@ -542,7 +749,7 @@
     border: 1px solid #e85d5d;
     border-radius: 8px;
     color: #ff8a8a;
-    font-family: 'DM Mono', monospace;
+    font-family: var(--font-body), sans-serif;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -571,6 +778,163 @@
     background: var(--border);
     border-radius: 3px;
     font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── FEEDBACK SYSTEM ── */
+  .feedback-card {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--card-bg);
+    border: 1px dashed var(--border2);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .feedback-text {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .feedback-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-fb-like, .btn-fb-dislike {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: var(--font-body), sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.12s;
+  }
+
+  .btn-fb-like {
+    background: rgba(0, 229, 160, 0.1);
+    border: 1px solid rgba(0, 229, 160, 0.2);
+    color: var(--accent);
+  }
+
+  .btn-fb-like:hover {
+    background: rgba(0, 229, 160, 0.2);
+  }
+
+  .btn-fb-dislike {
+    background: rgba(232, 93, 93, 0.1);
+    border: 1px solid rgba(232, 93, 93, 0.2);
+    color: #ff8a8a;
+  }
+
+  .btn-fb-dislike:hover {
+    background: rgba(232, 93, 93, 0.2);
+  }
+
+  .feedback-save-input {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 11px;
+    outline: none;
+    font-family: var(--font-body), sans-serif;
+    transition: border-color 0.15s;
+  }
+
+  .feedback-save-input:focus {
+    border-color: var(--accent);
+  }
+
+  /* ── MODALS & OVERLAYS ── */
+  @keyframes modalFadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 440px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow);
+    animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (max-width: 1080px) {
+    .workspace {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(220px, 35%) minmax(0, 1.65fr);
+    }
+
+    .activity-pane {
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+  }
+
+  @media (max-width: 780px) {
+    body {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 100%;
+      min-width: 0;
+      height: auto;
+      max-height: 34vh;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar {
+      padding: 12px 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-meta {
+      max-width: 100%;
+      text-align: left;
+    }
+
+    .profile-container {
+      margin-left: auto;
+    }
+
+    .messages,
+    .activity-feed {
+      padding: 14px;
+    }
+
+    .msg-body {
+      max-width: 86%;
+    }
   }
 </style>
 </head>
@@ -591,7 +955,15 @@
     </button>
   </div>
 
-  <div class="chat-list" id="chatList"></div>
+  <div class="chat-list" id="chatList" style="flex: 1; min-height: 120px;"></div>
+
+  <div class="workflows-section" style="height: 42%; display: flex; flex-direction: column; border-top: 1px solid var(--border); overflow: hidden;">
+    <div style="padding: 12px 14px 6px; font-family: var(--font-heading), sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); display:flex; justify-content:space-between; align-items:center;">
+      <span>Quy trình đã học</span>
+      <span id="wfCount" style="background: var(--border2); padding: 2px 7px; border-radius: 999px; font-size: 9px; color: var(--text); font-weight:600;">0</span>
+    </div>
+    <div id="workflowsList" style="flex: 1; overflow-y: auto; padding: 4px 8px;"></div>
+  </div>
 
   <div class="sidebar-footer">
     <div class="status-badge">
@@ -603,22 +975,55 @@
 
 <!-- MAIN -->
 <main class="main">
-  <div class="topbar">
-    <div class="chat-title" id="chatTitle">Chọn hoặc tạo chat mới</div>
-    <div class="topbar-meta" id="topbarMeta"></div>
+  <div class="topbar" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+    <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+      <div class="chat-title" id="chatTitle">Chọn hoặc tạo chat mới</div>
+      <div class="topbar-meta" id="topbarMeta"></div>
+    </div>
+    <div class="profile-container" style="display:flex; align-items:center; gap:8px;">
+      <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Chuyển sáng/tối" aria-label="Chuyển sáng/tối">
+        <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>
+        </svg>
+        <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </button>
+      <span style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">Hồ sơ:</span>
+      <select id="userProfile" class="select-control" style="width:130px; padding:6px 10px; font-size:11px; border-radius:8px;" onchange="changeProfile()"></select>
+      <button class="btn-new" onclick="createProfile()" title="Thêm hồ sơ mới" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:14px; font-weight:600;">+</button>
+    </div>
   </div>
 
-  <div class="messages" id="messages">
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">🤖</div>
-      <div class="empty-title">AI Browser Agent</div>
-      <div class="empty-sub">Ra lệnh bằng tiếng Việt.<br>AI sẽ tự điều khiển trình duyệt.</div>
-      <div class="suggestions">
-        <div class="suggestion" onclick="useSuggestion(this)">Mở YouTube tìm nhạc trẻ</div>
-        <div class="suggestion" onclick="useSuggestion(this)">Vào Google tìm tin tức hôm nay</div>
-        <div class="suggestion" onclick="useSuggestion(this)">Kiểm tra thời tiết Hồ Chí Minh</div>
+  <div class="workspace">
+    <section class="chat-pane" aria-label="Chat và kết quả">
+      <div class="pane-head">
+        <div class="pane-title">Chat & kết quả</div>
+        <div class="pane-subtle">Trao đổi chính</div>
       </div>
-    </div>
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🤖</div>
+          <div class="empty-title">AI Browser Agent</div>
+          <div class="empty-sub">Ra lệnh bằng tiếng Việt.<br>AI sẽ tự điều khiển trình duyệt.</div>
+          <div class="suggestions">
+            <div class="suggestion" onclick="useSuggestion(this)">Mở YouTube tìm nhạc trẻ</div>
+            <div class="suggestion" onclick="useSuggestion(this)">Vào Google tìm tin tức hôm nay</div>
+            <div class="suggestion" onclick="useSuggestion(this)">Kiểm tra thời tiết Hồ Chí Minh</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <aside class="activity-pane" aria-label="Suy nghĩ và tiến trình AI">
+      <div class="pane-head">
+        <div class="pane-title">Suy nghĩ AI</div>
+        <div class="pane-subtle" id="activityMeta">Đang chờ</div>
+      </div>
+      <div class="activity-feed" id="activityFeed">
+        <div class="activity-empty" id="activityEmpty">Các bước xử lý, đánh giá và chi phí sẽ hiện ở đây khi AI bắt đầu chạy.</div>
+      </div>
+    </aside>
   </div>
 
   <div class="input-area">
@@ -651,7 +1056,7 @@
         Dừng
       </button>
       <button class="btn-send" id="sendBtn" onclick="sendMessage()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d0f12" stroke-width="2.5">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--btn-send-icon)" stroke-width="2.5">
           <line x1="22" y1="2" x2="11" y2="13"/>
           <polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
@@ -664,6 +1069,34 @@
   </div>
 </main>
 
+<!-- WORKFLOW RUN MODAL -->
+<div id="workflowModal" class="modal">
+  <div class="modal-content">
+    <div style="font-family: var(--font-heading), sans-serif; font-size:16px; font-weight:700; color:var(--text);" id="modalWfTitle">Chạy kịch bản</div>
+    <div id="modalWfTemplate" style="font-size:11px; color:var(--muted); background:var(--bg); border:1px solid var(--border2); padding:10px; border-radius:8px; line-height:1.5; word-break:break-all;"></div>
+    <div id="modalWfInputs" style="display:flex; flex-direction:column; gap:12px;"></div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+      <button class="btn-new" style="width:auto; padding:8px 16px;" onclick="closeWorkflowModal()">Hủy</button>
+      <button class="btn-send" style="width:auto; padding:8px 20px; border-radius:8px; height:auto; color:var(--btn-send-icon-inv, #0d0f12); font-weight:600; font-size:12px;" onclick="executeWorkflowFromModal()">Chạy ngay</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE PROFILE MODAL -->
+<div id="profileModal" class="modal">
+  <div class="modal-content">
+    <div style="font-family: var(--font-heading), sans-serif; font-size:16px; font-weight:700; color:var(--text);">Tạo hồ sơ mới</div>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <label style="font-size:11px; color:var(--muted); font-weight:500;">Tên hồ sơ:</label>
+      <input type="text" id="newProfileName" class="feedback-save-input" style="font-size:12px; padding:10px 12px; border-radius:10px;" placeholder="Ví dụ: Tú Ka Wa, Cá Nhân..." value="" />
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+      <button class="btn-new" style="width:auto; padding:8px 16px;" onclick="closeProfileModal()">Hủy</button>
+      <button class="btn-send" style="width:auto; padding:8px 20px; border-radius:8px; height:auto; color:var(--btn-send-icon-inv, #0d0f12); font-weight:600; font-size:12px;" onclick="submitCreateProfile()">Tạo ngay</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let currentChatId = null;
 let isLoading = false;
@@ -672,10 +1105,28 @@ let modelOptions = [];
 let visionModeOptions = [];
 let modelConfig = { executor_model: '', planner_model: '', vision_mode: 'auto' };
 let currentRunUsage = null;
+let currentProfile = 'Default';
+let savedWorkflows = {};
+let activeRunWf = null;
+let pendingWorkflowId = null;
+
+function initTheme() {
+  const saved = localStorage.getItem('ui_theme') || 'dark';
+  document.documentElement.dataset.theme = saved === 'light' ? 'light' : 'dark';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('ui_theme', next);
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────
 async function init() {
+  initTheme();
   await loadConfig();
+  await loadProfiles();
+  await loadWorkflows();
   await loadChatList();
   if (!currentChatId) await newChat();
 }
@@ -750,6 +1201,45 @@ function modelLabel(modelId) {
 }
 
 // ── New chat ──────────────────────────────────────────────────────────────
+function renderActivityEmpty() {
+  const feed = document.getElementById('activityFeed');
+  const meta = document.getElementById('activityMeta');
+  if (!feed) return;
+  feed.innerHTML = `<div class="activity-empty" id="activityEmpty">Các bước xử lý, đánh giá và chi phí sẽ hiện ở đây khi AI bắt đầu chạy.</div>`;
+  if (meta) meta.textContent = 'Đang chờ';
+}
+
+function ensureActivityFeed() {
+  const feed = document.getElementById('activityFeed');
+  const empty = document.getElementById('activityEmpty');
+  if (empty) empty.remove();
+  return feed;
+}
+
+function setActivityMeta(text) {
+  const meta = document.getElementById('activityMeta');
+  if (meta) meta.textContent = text || '';
+}
+
+function appendHistoryActivity(metadata, time = '') {
+  if (!metadata?.usage) return;
+  const feed = ensureActivityFeed();
+  if (!feed) return;
+
+  const card = document.createElement('div');
+  card.className = 'activity-card';
+  card.innerHTML = `
+    <div class="activity-status">
+      <span>Tổng kết lượt chạy</span>
+    </div>
+    <div class="msg-meta" style="display:block">${renderUsageHtml(metadata.usage, metadata.state === 'needs_input', metadata.state)}</div>
+    <div class="msg-time">${time || ''}</div>
+  `;
+  feed.appendChild(card);
+  feed.scrollTop = feed.scrollHeight;
+  setActivityMeta('Lịch sử');
+}
+
 async function newChat() {
   const res = await fetch('/api/new_chat', { method: 'POST' });
   const data = await res.json();
@@ -777,6 +1267,7 @@ function renderEmpty() {
         <div class="suggestion" onclick="useSuggestion(this)">Kiểm tra thời tiết Hồ Chí Minh</div>
       </div>
     </div>`;
+  renderActivityEmpty();
 }
 
 // ── Load chat list ────────────────────────────────────────────────────────
@@ -818,9 +1309,11 @@ async function loadChat(chatId) {
 
   const m = document.getElementById('messages');
   m.innerHTML = '';
+  renderActivityEmpty();
 
   chat.messages.forEach(msg => {
     appendMessage(msg.role, msg.content, msg.time, false, msg.metadata || null);
+    if (msg.role !== 'user') appendHistoryActivity(msg.metadata || null, msg.time);
   });
 
   currentRunUsage = findLastUsage(chat);
@@ -929,6 +1422,8 @@ async function sendMessage() {
 
   let completed = false;
   const selectedModels = getSelectedModels();
+  const wfIdToSend = pendingWorkflowId;
+  pendingWorkflowId = null;
 
   try {
     const res = await fetch('/api/chat', {
@@ -941,6 +1436,8 @@ async function sendMessage() {
         executor_model: selectedModels.executor_model,
         planner_model: selectedModels.planner_model,
         vision_mode: selectedModels.vision_mode,
+        user_profile: currentProfile,
+        workflow_id: wfIdToSend,
       }),
     });
 
@@ -958,7 +1455,7 @@ async function sendMessage() {
       }
 
       if (data.type === 'step') {
-        appendStep(aiId, data.step, data.action, data.goal);
+        appendStep(aiId, data.step, data.action, data.goal, data.evaluation, data.memory);
         const stepText = data.text || `Bước ${data.step}: ${data.action}`;
         updateThinkingStatus(aiId, stepText);
         setStatus(true, stepText);
@@ -1057,7 +1554,6 @@ function appendMessage(role, content, time, scroll, metadata = null) {
     <div class="msg-avatar">${isUser ? '👤' : '🤖'}</div>
     <div class="msg-body">
       <div class="msg-bubble">${escHtml(content)}</div>
-      ${renderMetadataHtml(metadata)}
       <div class="msg-time">${time || ''}</div>
     </div>`;
   m.appendChild(div);
@@ -1065,13 +1561,14 @@ function appendMessage(role, content, time, scroll, metadata = null) {
 }
 
 function appendThinking(id) {
-  const m = document.getElementById('messages');
+  const feed = ensureActivityFeed();
+  if (!feed) return;
   const div = document.createElement('div');
-  div.className = 'msg ai';
+  div.className = 'activity-card';
   div.id = 'thinking-' + id;
   div.innerHTML = `
     <div class="msg-avatar">🤖</div>
-    <div class="msg-body">
+    <div class="msg-body" style="width: 100%">
       <div class="msg-status">
         <span id="status-${id}">Đang xử lý...</span>
         <div class="thinking-dots"><span></span><span></span><span></span></div>
@@ -1081,13 +1578,15 @@ function appendThinking(id) {
       <div class="msg-meta" id="meta-${id}"></div>
       <div class="msg-time" id="time-${id}"></div>
     </div>`;
-  m.appendChild(div);
-  m.scrollTop = m.scrollHeight;
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+  setActivityMeta('Đang chạy');
 }
 
 function updateThinkingStatus(id, text) {
   const statusEl = document.getElementById('status-' + id);
   if (statusEl) statusEl.textContent = text;
+  setActivityMeta(text);
 }
 
 function updateThinkingMeta(id, usage, waiting = false) {
@@ -1095,9 +1594,10 @@ function updateThinkingMeta(id, usage, waiting = false) {
   if (!metaEl || !usage) return;
   metaEl.innerHTML = renderUsageHtml(usage, waiting);
   metaEl.style.display = 'block';
+  setActivityMeta(waiting ? 'Chờ bạn trả lời' : 'Đang cập nhật');
 }
 
-function appendStep(id, step, action, goal) {
+function appendStep(id, step, action, goal, evaluation, memory) {
   const stepsEl = document.getElementById('steps-' + id);
   if (!stepsEl) return;
 
@@ -1109,12 +1609,15 @@ function appendStep(id, step, action, goal) {
     <div class="step-num">#${step ?? '?'}</div>
     <div class="step-main">
       <div class="step-action">${escHtml(action || 'đang phân tích')}</div>
-      ${goal ? `<div class="step-goal">${escHtml(goal)}</div>` : ''}
+      ${goal ? `<div class="step-goal">🎯 Mục tiêu: ${escHtml(goal)}</div>` : ''}
+      ${evaluation ? `<div class="step-eval">📝 Đánh giá: ${escHtml(evaluation)}</div>` : ''}
+      ${memory ? `<div class="step-memory">🧠 Ghi nhớ: ${escHtml(memory)}</div>` : ''}
     </div>`;
 
   stepsEl.appendChild(item);
   stepsEl.scrollTop = stepsEl.scrollHeight;
-  document.getElementById('messages').scrollTop = 99999;
+  const feed = document.getElementById('activityFeed');
+  if (feed) feed.scrollTop = feed.scrollHeight;
 }
 
 function finishThinking(id, text, finalStatus, usage = null, waiting = false) {
@@ -1139,6 +1642,27 @@ function finishThinking(id, text, finalStatus, usage = null, waiting = false) {
     timeEl.textContent = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   }
 
+  appendMessage('ai', text, timeEl?.textContent || '', true);
+  setActivityMeta(finalStatus || 'Hoàn tất');
+
+  if (finalStatus === 'Hoàn tất' && currentChatId) {
+    const msgBody = thinkingEl.querySelector('.msg-body');
+    if (msgBody) {
+      const fbCard = document.createElement('div');
+      fbCard.className = 'feedback-card';
+      fbCard.innerHTML = `
+        <div class="feedback-text">💡 Bạn có hài lòng với kết quả thực thi này của AI?</div>
+        <div class="feedback-actions" id="fb-actions-${id}">
+          <button class="btn-fb-like" onclick="showFeedbackSaveModal('${id}', '${currentChatId}')">👍 Hài lòng & Đóng gói</button>
+          <button class="btn-fb-dislike" onclick="submitDislikeFeedback('${id}', '${currentChatId}')">👎 Không hài lòng</button>
+        </div>
+      `;
+      msgBody.appendChild(fbCard);
+    }
+  }
+
+  const feed = document.getElementById('activityFeed');
+  if (feed) feed.scrollTop = feed.scrollHeight;
   document.getElementById('messages').scrollTop = 99999;
 }
 
@@ -1283,6 +1807,290 @@ function escHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Profiles & Workflows ──────────────────────────────────────────────────
+async function loadProfiles() {
+  const res = await fetch('/api/profiles');
+  const data = await res.json();
+  const profiles = data.profiles || [];
+  const select = document.getElementById('userProfile');
+  if (select) {
+    select.innerHTML = profiles.map(p => `
+      <option value="${escHtml(p)}">${escHtml(p)}</option>
+    `).join('');
+    select.value = currentProfile;
+  }
+}
+
+function changeProfile() {
+  const select = document.getElementById('userProfile');
+  if (select) {
+    currentProfile = select.value;
+  }
+}
+
+function createProfile() {
+  document.getElementById('profileModal').style.display = 'flex';
+  document.getElementById('newProfileName').value = '';
+  document.getElementById('newProfileName').focus();
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').style.display = 'none';
+}
+
+async function submitCreateProfile() {
+  const input = document.getElementById('newProfileName');
+  const name = input.value.trim();
+  if (!name) {
+    alert('Vui lòng nhập tên hồ sơ');
+    return;
+  }
+  const res = await fetch('/api/profiles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    currentProfile = name;
+    await loadProfiles();
+    closeProfileModal();
+  } else {
+    alert(data.error || 'Có lỗi xảy ra');
+  }
+}
+
+async function loadWorkflows() {
+  const res = await fetch('/api/site_workflows');
+  const data = await res.json();
+  savedWorkflows = data.site_profiles || {};
+  renderWorkflows();
+}
+
+function renderWorkflows() {
+  const list = document.getElementById('workflowsList');
+  const countEl = document.getElementById('wfCount');
+  if (!list) return;
+
+  let count = 0;
+  const itemsHtml = [];
+
+  for (const domain in savedWorkflows) {
+    const wfs = savedWorkflows[domain] || [];
+    wfs.forEach(wf => {
+      count++;
+      const wfScope = (wf.metadata && wf.metadata.workflow_scope === 'specific') ? 'Cu the' : 'Tong quat';
+      itemsHtml.push(`
+        <div class="chat-item" onclick="runWorkflow('${escHtml(domain)}', '${escHtml(wf.workflow_id)}')" style="padding: 8px 10px; margin-bottom: 4px;">
+          <div class="chat-item-text" style="color: var(--text); flex: 1;">
+            <div style="font-weight: 600; font-size: 11px; color: var(--accent);">${escHtml(domain)} · ${wfScope}</div>
+            <div style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escHtml(wf.workflow_name || wf.prompt_template)}">
+              ${escHtml(wf.workflow_name || 'Kịch bản')}
+            </div>
+          </div>
+          <button class="chat-item-del" onclick="deleteWorkflow(event, '${escHtml(domain)}', '${escHtml(wf.workflow_id)}')" title="Xóa kịch bản">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      `);
+    });
+  }
+
+  if (countEl) countEl.textContent = count;
+  if (itemsHtml.length === 0) {
+    list.innerHTML = `<div style="padding:12px 8px; font-size:10.5px; color:var(--muted); text-align:center;">Chưa học quy trình nào</div>`;
+  } else {
+    list.innerHTML = itemsHtml.join('');
+  }
+}
+
+async function deleteWorkflow(e, domain, workflowId) {
+  e.stopPropagation();
+  if (!confirm('Bạn có chắc chắn muốn xóa kịch bản này?')) return;
+  const res = await fetch(`/api/site_workflows/${domain}/${workflowId}`, {
+    method: 'DELETE'
+  });
+  const data = await res.json();
+  if (data.ok) {
+    await loadWorkflows();
+  } else {
+    alert(data.error || 'Có lỗi xảy ra');
+  }
+}
+
+let activeWfDomain = null;
+let activeWfId = null;
+
+function runWorkflow(domain, workflowId) {
+  const domainWfs = savedWorkflows[domain] || [];
+  const wf = domainWfs.find(item => item.workflow_id === workflowId);
+  if (!wf) return;
+
+  activeWfDomain = domain;
+  activeWfId = workflowId;
+  activeRunWf = wf;
+
+  const modal = document.getElementById('workflowModal');
+  const modalTitle = document.getElementById('modalWfTitle');
+  const modalTemplate = document.getElementById('modalWfTemplate');
+  const modalInputs = document.getElementById('modalWfInputs');
+
+  if (!modal || !modalTitle || !modalTemplate || !modalInputs) return;
+
+  modalTitle.textContent = `Chạy: ${wf.workflow_name || 'Kịch bản'}`;
+  modalTemplate.textContent = wf.prompt_template || '';
+
+  const vars = wf.variables || [];
+  const schema = (wf.metadata && wf.metadata.input_schema) || [];
+
+  modalInputs.innerHTML = '';
+  if (vars.length === 0) {
+    modalInputs.innerHTML = `<div style="font-size:11px; color:var(--muted);">Kịch bản này không cần tham số đầu vào.</div>`;
+  } else {
+    vars.forEach(v => {
+      const info = schema.find(s => s.name === v) || {};
+      const label = info.label || v;
+      const type = info.type === 'password' ? 'password' : 'text';
+      const placeholder = info.placeholder || '';
+
+      const div = document.createElement('div');
+      div.style.display = 'flex';
+      div.style.flexDirection = 'column';
+      div.style.gap = '4px';
+      div.innerHTML = `
+        <label style="font-size:11px; color:var(--muted); font-weight:500;">${escHtml(label)}:</label>
+        <input type="${type}" id="wf-var-${v}" class="feedback-save-input" placeholder="${escHtml(placeholder)}" />
+      `;
+      modalInputs.appendChild(div);
+    });
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeWorkflowModal() {
+  document.getElementById('workflowModal').style.display = 'none';
+  activeWfDomain = null;
+  activeWfId = null;
+  activeRunWf = null;
+}
+
+function executeWorkflowFromModal() {
+  if (!activeRunWf) return;
+
+  const vars = activeRunWf.variables || [];
+  let taskPrompt = activeRunWf.prompt_template || '';
+  let missing = false;
+
+  vars.forEach(v => {
+    const input = document.getElementById(`wf-var-${v}`);
+    if (input) {
+      const val = input.value.trim();
+      if (!val) {
+        alert(`Vui lòng nhập giá trị cho: ${v}`);
+        missing = true;
+        return;
+      }
+      taskPrompt = taskPrompt.replace(new RegExp(`{${v}}`, 'g'), val);
+    }
+  });
+
+  if (missing) return;
+
+  pendingWorkflowId = activeRunWf.workflow_id;
+  closeWorkflowModal();
+  document.getElementById('taskInput').value = taskPrompt;
+  sendMessage();
+}
+
+// ── Feedback System ───────────────────────────────────────────────────────
+let activeFbAiId = null;
+let activeFbChatId = null;
+
+function showFeedbackSaveModal(aiId, chatId) {
+  activeFbAiId = aiId;
+  activeFbChatId = chatId;
+
+  const fbActions = document.getElementById(`fb-actions-${aiId}`);
+  if (!fbActions) return;
+
+  fbActions.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+      <div style="font-size:11px; color:var(--muted);">Đặt tên cho quy trình này để lưu lại:</div>
+      <div style="display:flex; gap:10px; align-items:center; font-size:11px; color:var(--text);">
+        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+          <input type="radio" name="fb-wf-mode-${aiId}" value="general" checked />
+          <span>Tong quat</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+          <input type="radio" name="fb-wf-mode-${aiId}" value="specific" />
+          <span>Cu the</span>
+        </label>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="fb-wf-name-${aiId}" class="feedback-save-input" placeholder="Ví dụ: Đăng nhập Facebook, Mua vé..." style="flex:1;" />
+        <button class="btn-send" style="width:auto; padding:0 12px; height:28px; border-radius:6px; color:var(--btn-send-icon-inv, #0d0f12); font-weight:600; font-size:11px;" onclick="submitLikeFeedback('${aiId}', '${chatId}')">Lưu & Đóng gói</button>
+        <button class="btn-new" style="width:auto; padding:0 10px; height:28px; border-radius:6px; font-size:11px;" onclick="cancelFeedback('${aiId}')">Hủy</button>
+      </div>
+    </div>
+  `;
+}
+
+function cancelFeedback(aiId) {
+  const fbActions = document.getElementById(`fb-actions-${aiId}`);
+  if (!fbActions) return;
+  fbActions.innerHTML = `
+    <button class="btn-fb-like" onclick="showFeedbackSaveModal('${aiId}', '${currentChatId}')">👍 Hài lòng & Đóng gói</button>
+    <button class="btn-fb-dislike" onclick="submitDislikeFeedback('${aiId}', '${currentChatId}')">👎 Không hài lòng</button>
+  `;
+}
+
+async function submitLikeFeedback(aiId, chatId) {
+  const input = document.getElementById(`fb-wf-name-${aiId}`);
+  const wfName = input ? input.value.trim() : '';
+  const modeInput = document.querySelector(`input[name="fb-wf-mode-${aiId}"]:checked`);
+  const workflowMode = modeInput ? modeInput.value : 'general';
+
+  const res = await fetch(`/api/chat/${chatId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      satisfied: true,
+      workflow_name: wfName,
+      workflow_mode: workflowMode,
+      user_profile: currentProfile
+    })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const fbCard = document.querySelector(`#thinking-${aiId} .feedback-card`);
+    if (fbCard) fbCard.innerHTML = `<div class="feedback-text" style="color:var(--accent);">✅ Cảm ơn bạn! Đã lưu quy trình thành công.</div>`;
+    await loadWorkflows();
+  } else {
+    alert(data.error || 'Có lỗi xảy ra');
+  }
+}
+
+async function submitDislikeFeedback(aiId, chatId) {
+  const res = await fetch(`/api/chat/${chatId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      satisfied: false,
+      user_profile: currentProfile
+    })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const fbCard = document.querySelector(`#thinking-${aiId} .feedback-card`);
+    if (fbCard) fbCard.innerHTML = `<div class="feedback-text" style="color:var(--danger);">❌ Đã ghi nhận phản hồi không hài lòng của bạn.</div>`;
+  } else {
+    alert(data.error || 'Có lỗi xảy ra');
+  }
 }
 
 init();
