@@ -1,1070 +1,690 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Browser Agent</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root, [data-theme="dark"] {
-    --bg:             #0f121d; /* Midnight slate, softer than pitch black */
-    --surface:        #171c2a; /* Card/Panel background */
-    --sidebar-bg:     #0a0d16; /* Sidebar background (distinctly darker) */
-    --border:         #242c3f; /* Subtle section borders */
-    --border2:        #2d374d; /* More visible separator borders */
-    --accent:         #00f5a0; /* Neon teal accent */
-    --accent2:        #00c983; /* Hover teal */
-    --accent-subtle:  rgba(0, 245, 160, 0.08);
-    --text:           #f8fafc; /* Slate-50 bright text */
-    --muted:          #94a3b8; /* Slate-400 readable description text */
-    --user-bg:        linear-gradient(135deg, #2563eb, #1d4ed8); /* Nice royal blue gradient */
-    --user-text:      #ffffff;
-    --ai-bg:          #1e2538; /* Distinct AI message background */
-    --danger:         #ff4d6d;
-    --danger-hover:   #e63956;
-    --card-bg:        rgba(255, 255, 255, 0.03); /* Translucent card */
-    --card-border:    #242c3f;
-    --shadow:         0 8px 30px rgba(0, 0, 0, 0.35);
-    --shadow-sm:      0 2px 8px rgba(0, 0, 0, 0.15);
-    --input-bg:       #0e111a;
-    --input-border:   #242c3f;
-    --btn-send-icon:  #0d101a;
-    --sidebar:        260px;
-    --font-heading:   'Outfit', sans-serif;
-    --font-body:      'Inter', sans-serif;
+    --bg:            #0a0c12;
+    --bg-soft:       #0e1118;
+    --surface:       #131722;
+    --surface-2:     #171c29;
+    --surface-3:     #1c2230;
+    --sidebar-bg:    #0b0e15;
+    --border:        rgba(255,255,255,0.07);
+    --border-strong: rgba(255,255,255,0.12);
+    --accent:        #34e2b0;
+    --accent-2:      #18b88a;
+    --accent-ink:    #05231b;
+    --accent-soft:   rgba(52,226,176,0.12);
+    --accent-ring:   rgba(52,226,176,0.30);
+    --text:          #eef2f8;
+    --text-2:        #aeb8c9;
+    --muted:         #6b7689;
+    --user-bubble:   #232a3a;
+    --user-text:     #eef2f8;
+    --danger:        #ff5d73;
+    --danger-soft:   rgba(255,93,115,0.12);
+    --wf-color:      #34d399;
+    --wf-soft:       rgba(52,211,153,0.14);
+    --wf-ring:       rgba(52,211,153,0.38);
+    --ai-color:      #fb7185;
+    --ai-soft:       rgba(251,113,133,0.14);
+    --ai-ring:       rgba(251,113,133,0.34);
+    --warn:          #ffce6b;
+    --info:          #7cc0ff;
+    --shadow:        0 18px 50px -12px rgba(0,0,0,0.65);
+    --shadow-sm:     0 4px 16px -6px rgba(0,0,0,0.5);
+    --radius:        16px;
+    --radius-sm:     11px;
+    --sidebar:       272px;
+    --thread-max:    824px;
+    --font:          'Inter', system-ui, sans-serif;
+    --font-display:  'Sora', 'Inter', sans-serif;
   }
 
   [data-theme="light"] {
-    --bg:             #f1f5f9; /* Slate-100 */
-    --surface:        #ffffff; /* Clean white card/panel */
-    --sidebar-bg:     #f8fafc; /* Slate-50 sidebar */
-    --border:         #cbd5e1; /* Slate-300 crisp borders */
-    --border2:        #94a3b8; /* Slate-400 stronger borders */
-    --accent:         #0d9488; /* Dark teal accent, fully readable on white */
-    --accent2:        #0f766e; /* Hover dark teal */
-    --accent-subtle:  rgba(13, 148, 136, 0.08);
-    --text:           #0f172a; /* Slate-900 high contrast */
-    --muted:          #475569; /* Slate-600 highly legible */
-    --user-bg:        linear-gradient(135deg, #e0f2fe, #bae6fd); /* Sky blue gradient */
-    --user-text:      #075985; /* Sky-800 contrasting text */
-    --ai-bg:          #ffffff; /* Solid white bubble on light grey background */
-    --danger:         #dc2626; /* Deep red */
-    --danger-hover:   #b91c1c;
-    --card-bg:        #f8fafc; /* Card solid light background */
-    --card-border:    #cbd5e1;
-    --shadow:         0 10px 30px rgba(15, 23, 42, 0.08);
-    --shadow-sm:      0 2px 4px rgba(15, 23, 42, 0.04);
-    --input-bg:       #f8fafc;
-    --input-border:   #cbd5e1;
-    --btn-send-icon:  #ffffff;
-    --sidebar:        260px;
-    --font-heading:   'Outfit', sans-serif;
-    --font-body:      'Inter', sans-serif;
+    --bg:            #f3f5f9;
+    --bg-soft:       #eef1f6;
+    --surface:       #ffffff;
+    --surface-2:     #f7f9fc;
+    --surface-3:     #eef2f7;
+    --sidebar-bg:    #f7f9fc;
+    --border:        rgba(15,23,42,0.09);
+    --border-strong: rgba(15,23,42,0.16);
+    --accent:        #0f9d76;
+    --accent-2:      #0b7d5e;
+    --accent-ink:    #ffffff;
+    --accent-soft:   rgba(15,157,118,0.10);
+    --accent-ring:   rgba(15,157,118,0.25);
+    --text:          #0d1424;
+    --text-2:        #3f4a5e;
+    --muted:         #7a8699;
+    --user-bubble:   #e6ecf6;
+    --user-text:     #0d1424;
+    --danger:        #dc2638;
+    --danger-soft:   rgba(220,38,56,0.08);
+    --wf-color:      #059669;
+    --wf-soft:       rgba(5,150,105,0.10);
+    --wf-ring:       rgba(5,150,105,0.28);
+    --ai-color:      #e11d48;
+    --ai-soft:       rgba(225,29,72,0.08);
+    --ai-ring:       rgba(225,29,72,0.24);
+    --warn:          #b8780a;
+    --info:          #2563eb;
+    --shadow:        0 18px 44px -16px rgba(15,23,42,0.22);
+    --shadow-sm:     0 4px 14px -6px rgba(15,23,42,0.12);
   }
 
-  html, body { height: 100%; overflow: hidden; }
-
+  html, body { height: 100%; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font-body), sans-serif;
+    font-family: var(--font);
+    font-feature-settings: 'cv11','ss01';
+    -webkit-font-smoothing: antialiased;
     display: flex;
-    transition: background 0.2s ease, color 0.2s ease;
-  }
-
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: var(--sidebar);
-    min-width: var(--sidebar);
-    background: var(--sidebar-bg, var(--surface));
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
     overflow: hidden;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition: background .25s ease, color .25s ease;
   }
 
-  .sidebar-header {
-    padding: 20px 16px 12px;
-    border-bottom: 1px solid var(--border);
-  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; }
+  ::selection { background: var(--accent-soft); color: var(--text); }
 
-  .logo {
-    font-family: var(--font-heading), sans-serif;
-    font-weight: 800;
-    font-size: 15px;
-    color: var(--accent);
-    letter-spacing: -0.3px;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  button, input, select, textarea { font-family: inherit; }
+  button { cursor: pointer; border: none; background: none; color: inherit; }
 
-  .logo-dot {
-    width: 8px; height: 8px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
+  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.45; transform:scale(.7);} }
+  @keyframes spin { to { transform: rotate(360deg);} }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform:none;} }
+  @keyframes blink { 0%,80%,100% { opacity:.25;} 40% { opacity:1;} }
+  @keyframes shimmer { 0% { background-position: -200% 0;} 100% { background-position: 200% 0;} }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
+  /* ───────────────────────── SIDEBAR ───────────────────────── */
+  .sidebar {
+    width: var(--sidebar); min-width: var(--sidebar);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    height: 100vh; overflow: hidden;
+    transition: margin-left .28s cubic-bezier(.4,0,.2,1);
   }
+  body.nav-collapsed .sidebar { margin-left: calc(-1 * var(--sidebar)); }
 
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 18px 18px 14px;
+  }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; color: var(--accent-ink);
+    box-shadow: 0 6px 16px -6px var(--accent-ring);
+  }
+  .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: -.2px; }
+  .brand-name small { display:block; font-family: var(--font); font-weight: 500; font-size: 10.5px; color: var(--muted); letter-spacing: .2px; }
+
+  .sb-pad { padding: 0 12px; }
   .btn-new {
-    width: 100%;
-    padding: 9px 12px;
-    background: transparent;
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--font-body), sans-serif;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.15s ease;
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 14px; border-radius: var(--radius-sm);
+    background: var(--accent); color: var(--accent-ink);
+    font-weight: 650; font-size: 13px;
+    box-shadow: 0 8px 20px -10px var(--accent-ring);
+    transition: transform .12s ease, filter .15s ease, box-shadow .15s ease;
   }
+  .btn-new:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .btn-new:active { transform: translateY(0); }
 
-  .btn-new:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-subtle);
+  .sb-scroll { flex: 1; overflow-y: auto; padding: 14px 10px 8px; display: flex; flex-direction: column; gap: 18px; }
+
+  .section-title {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px 8px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
   }
+  .pill { background: var(--surface-3); color: var(--text-2); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
 
-  .btn-new svg { flex-shrink: 0; }
-
-  .chat-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-  }
-
-  .chat-list::-webkit-scrollbar { width: 4px; }
-  .chat-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
+  .chat-list { display: flex; flex-direction: column; gap: 2px; }
   .chat-item {
-    padding: 9px 10px;
-    border-radius: 7px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 0.12s ease, transform 0.12s ease;
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px; border-radius: 10px; cursor: pointer;
+    color: var(--text-2); transition: background .14s ease, color .14s ease;
     position: relative;
   }
-
-  .chat-item:hover { background: var(--border); }
-  .chat-item.active { background: var(--accent-subtle); }
+  .chat-item:hover { background: var(--surface-2); color: var(--text); }
+  .chat-item.active { background: var(--accent-soft); color: var(--text); }
   .chat-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 4px; bottom: 4px;
-    width: 3px;
-    background: var(--accent);
-    border-radius: 0 2px 2px 0;
+    content:""; position:absolute; left:0; top:50%; transform:translateY(-50%);
+    width:3px; height:18px; border-radius:0 3px 3px 0; background: var(--accent);
   }
-
-  .chat-item-text {
-    flex: 1;
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.4;
-  }
-
-  .chat-item.active .chat-item-text { color: var(--text); font-weight: 500; }
-
+  .chat-item-text { flex: 1; min-width: 0; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-item-del {
-    opacity: 0;
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 4px;
-    transition: all 0.12s ease;
-    flex-shrink: 0;
+    opacity: 0; width: 22px; height: 22px; border-radius: 7px; flex: none;
+    display: grid; place-items: center; color: var(--muted);
+    transition: opacity .14s ease, background .14s ease, color .14s ease;
   }
-
   .chat-item:hover .chat-item-del { opacity: 1; }
-  .chat-item-del:hover { color: var(--danger); }
+  .chat-item-del:hover { background: var(--danger-soft); color: var(--danger); }
 
-  .sidebar-footer {
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
+  .workspace-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 13px; padding: 12px; display: flex; flex-direction: column; gap: 9px;
   }
-
-  .status-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--muted);
+  .ws-row { display: flex; gap: 7px; align-items: center; }
+  .icon-btn {
+    width: 32px; height: 32px; flex: none; border-radius: 9px;
+    background: var(--surface-3); color: var(--text-2);
+    display: grid; place-items: center; font-size: 16px; font-weight: 600;
+    transition: background .14s ease, color .14s ease, transform .12s ease;
   }
-
-  .status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-  }
-
-  /* ── MAIN ── */
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  .topbar {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
-    z-index: 10;
-  }
-
-  .chat-title {
-    font-family: var(--font-heading), sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text);
-  }
-
-  .topbar-meta {
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.5;
-    text-align: right;
-    max-width: 56%;
-  }
-
-  .theme-toggle {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    border: 1px solid var(--border2);
-    background: var(--bg);
-    color: var(--text);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-  }
-
-  .theme-toggle:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .theme-icon-sun,
-  [data-theme="light"] .theme-icon-moon {
-    display: none;
-  }
-
-  [data-theme="light"] .theme-icon-sun {
-    display: block;
-  }
-
-  .workspace {
-    flex: 1;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: minmax(320px, 0.5fr) minmax(0, 1.5fr);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .chat-pane,
-  .activity-pane {
-    min-width: 0;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .activity-pane {
-    border-left: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface) 72%, var(--bg));
-  }
-
-  .pane-head {
-    height: 48px;
-    padding: 0 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-
-  .pane-title {
-    font-family: var(--font-heading), sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .pane-subtle {
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  /* ── MESSAGES ── */
-  .messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .messages::-webkit-scrollbar { width: 4px; }
-  .messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  .empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: var(--muted);
-    animation: fadeUp 0.3s ease;
-  }
-
-  .empty-icon {
-    font-size: 40px;
-    filter: grayscale(1);
-    opacity: 0.4;
-  }
-
-  .empty-title {
-    font-family: var(--font-heading), sans-serif;
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--text);
-    opacity: 0.4;
-  }
-
-  .empty-sub { font-size: 12px; opacity: 0.5; text-align: center; line-height: 1.6; }
-
-  .suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 8px;
-  }
-
-  .suggestion {
-    padding: 8px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    font-size: 11px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .suggestion:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-subtle);
-    transform: translateY(-1px);
-  }
-
-  /* Messages */
-  .msg { display: flex; gap: 12px; animation: fadeUp 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .msg.user { flex-direction: row-reverse; }
-
-  .msg-avatar {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-    margin-top: 2px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .msg.user .msg-avatar {
-    background: var(--surface);
-    border: 1px solid var(--border);
-  }
-
-  .msg.ai .msg-avatar {
-    background: var(--accent-subtle);
-    border: 1px solid var(--accent);
-  }
-
-  .msg-body { max-width: 72%; display: flex; flex-direction: column; gap: 4px; }
-  .msg.user .msg-body { align-items: flex-end; }
-
-  .msg-bubble {
-    padding: 10px 14px;
-    border-radius: 14px;
-    font-size: 13px;
-    line-height: 1.65;
-    white-space: pre-wrap;
-    word-break: break-word;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
-  }
-
-  .msg.user .msg-bubble {
-    background: var(--user-bg);
-    border: 1px solid transparent;
-    border-top-right-radius: 4px;
-    color: var(--user-text, var(--text));
-  }
-
-  .msg.ai .msg-bubble {
-    background: var(--ai-bg);
-    border: 1px solid var(--border);
-    border-top-left-radius: 4px;
-    color: var(--text);
-  }
-
-  .msg-time { font-size: 10px; color: var(--muted); padding: 0 4px; }
-
-  /* Status / thinking */
-  .msg-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--accent);
-    padding: 8px 0;
-  }
-
-  .thinking-dots span {
-    display: inline-block;
-    width: 5px; height: 5px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: blink 1.2s infinite;
-  }
-
-  .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes blink {
-    0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-    40% { opacity: 1; transform: scale(1); }
-  }
-
-  .msg-steps {
-    display: none;
-    margin-top: 8px;
-    padding: 12px 14px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-  }
-
-  .msg-steps::-webkit-scrollbar { width: 4px; }
-  .msg-steps::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  .step-item {
-    display: flex;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .step-item:last-child { border-bottom: none; }
-
-  .step-num {
-    color: var(--accent);
-    font-size: 13px;
-    min-width: 32px;
-    flex-shrink: 0;
-    font-weight: 700;
-  }
-
-  .step-main {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    min-width: 0;
-  }
-
-  .step-action {
-    font-size: 13.5px;
-    color: var(--text);
-    text-transform: capitalize;
-    font-weight: 600;
-  }
-
-  .step-goal {
-    font-size: 12.5px;
-    color: var(--muted);
-    line-height: 1.5;
-    word-break: break-word;
-  }
-
-  .step-eval, .step-memory {
-    font-size: 12px;
-    line-height: 1.5;
-    word-break: break-word;
-    margin-top: 3px;
-  }
-
-  .step-eval {
-    color: #ffd166;
-    opacity: 0.95;
-  }
-
-  .step-memory {
-    color: #4ea8de;
-    opacity: 0.95;
-  }
-
-  .msg-meta {
-    display: none;
-    margin-top: 6px;
-    padding: 8px 10px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 10px;
-    line-height: 1.55;
-    color: var(--muted);
-  }
-
-  .meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 4px;
-  }
-
-  .meta-row:first-child { margin-top: 0; }
-
-  .meta-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 7px;
-    border-radius: 999px;
-    border: 1px solid var(--border2);
-    background: var(--bg);
-    color: var(--text);
-  }
-
-  .meta-note {
-    margin-top: 6px;
-    color: #ffd166;
-  }
-
-  .activity-feed {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .activity-feed::-webkit-scrollbar { width: 4px; }
-  .activity-feed::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  .activity-empty {
-    flex: 1;
-    min-height: 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: var(--muted);
-    font-size: 13.5px;
-    line-height: 1.55;
-    padding: 20px;
-  }
-
-  .activity-card {
-    border: 1px solid var(--border);
-    background: var(--ai-bg);
-    border-radius: 8px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    animation: fadeUp 0.2s ease;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .activity-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--accent);
-    font-size: 13.5px;
-    font-weight: 600;
-  }
-
-  .activity-result {
-    color: var(--text);
-    font-size: 13.5px;
-    line-height: 1.55;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  /* ── INPUT ── */
-  .input-area {
-    padding: 16px 24px 20px;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
-  }
-
-  .control-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-
-  .select-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    min-width: 220px;
-    flex: 1;
-  }
-
-  .select-label {
-    font-size: 10px;
-    color: var(--muted);
-    padding-left: 2px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
+  .icon-btn:hover { background: var(--accent-soft); color: var(--accent); transform: translateY(-1px); }
+  .ws-meta { font-size: 10.5px; color: var(--muted); line-height: 1.5; }
 
   .select-control {
-    width: 100%;
-    padding: 9px 11px;
-    border-radius: 10px;
-    border: 1px solid var(--input-border, var(--border2));
-    background: var(--input-bg, var(--bg));
-    color: var(--text);
-    font-family: var(--font-body), sans-serif;
-    font-size: 12px;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%; padding: 8px 30px 8px 11px; border-radius: 9px;
+    background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a8699' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+    border: 1px solid var(--border); color: var(--text);
+    font-size: 12px; font-weight: 500; appearance: none; -webkit-appearance: none; outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .select-control:hover { border-color: var(--border-strong); }
+  .select-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+
+  .wf-list { display: flex; flex-direction: column; gap: 3px; }
+  .wf-name-tag { font-size: 9.5px; color: var(--accent); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+
+  .sidebar-footer {
+    border-top: 1px solid var(--border); padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .status-badge { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); font-weight: 500; min-width: 0; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; flex: none; }
+  #statusText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .theme-toggle {
+    width: 34px; height: 34px; border-radius: 9px; flex: none;
+    border: 1px solid var(--border); background: var(--surface-2);
+    display: grid; place-items: center; color: var(--text-2);
+    transition: background .14s ease, color .14s ease, border-color .14s ease;
+  }
+  .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+  .theme-icon-sun { display: none; }
+  [data-theme="light"] .theme-icon-moon { display: none; }
+  [data-theme="light"] .theme-icon-sun { display: block; }
+
+  /* ───────────────────────── MAIN ───────────────────────── */
+  .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; position: relative; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(10px); z-index: 5;
+  }
+  .ghost-btn {
+    width: 36px; height: 36px; border-radius: 10px; flex: none;
+    display: grid; place-items: center; color: var(--text-2);
+    border: 1px solid transparent; transition: background .14s ease, color .14s ease;
+  }
+  .ghost-btn:hover { background: var(--surface-2); color: var(--text); }
+  .topbar-titles { flex: 1; min-width: 0; }
+  .chat-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-meta { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .profile-switcher { position: relative; flex: none; }
+  .workspace-badge {
+    font-size: 11.5px; font-weight: 600; color: var(--text-2);
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: 999px; max-width: 240px;
+    white-space: nowrap; overflow: hidden;
+    display: flex; align-items: center; gap: 7px; cursor: pointer;
+    transition: background .14s ease, color .14s ease, border-color .14s ease;
+  }
+  .workspace-badge:hover { background: var(--surface-3, var(--surface-2)); color: var(--text); border-color: var(--accent); }
+  .workspace-badge #activeProfileBadge { overflow: hidden; text-overflow: ellipsis; }
+  .workspace-badge .status-dot { width: 6px; height: 6px; animation: none; flex: none; }
+  .workspace-badge .ws-chev { flex: none; opacity: .65; transition: transform .16s ease; }
+  .profile-switcher.open .ws-chev { transform: rotate(180deg); }
+  .profile-menu {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+    min-width: 240px; max-width: 300px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(4,6,11,.32); padding: 7px;
+    opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.98);
+    transform-origin: top right; transition: opacity .15s ease, transform .15s ease, visibility .15s;
+  }
+  .profile-switcher.open .profile-menu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+  .profile-menu-head { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 6px 10px 4px; }
+  .profile-menu-list { display: flex; flex-direction: column; gap: 2px; max-height: 280px; overflow-y: auto; }
+  .profile-menu-item {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    padding: 8px 10px; border-radius: 9px; cursor: pointer; text-align: left;
+    color: var(--text-2); transition: background .12s ease, color .12s ease;
+  }
+  .profile-menu-item:hover { background: var(--surface-2); color: var(--text); }
+  .profile-menu-item.active { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
+  .profile-menu-item .pm-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--border); }
+  .profile-menu-item.active .pm-dot { background: var(--accent); }
+  .profile-menu-item .pm-body { flex: 1; min-width: 0; }
+  .profile-menu-item .pm-name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .profile-menu-item .pm-type { font-size: 10.5px; color: var(--muted); }
+  .profile-menu-item .pm-check { flex: none; color: var(--accent); opacity: 0; }
+  .profile-menu-item.active .pm-check { opacity: 1; }
+  .profile-menu-add {
+    display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 5px;
+    padding: 8px 10px; border-radius: 9px; cursor: pointer; font-size: 12.5px; font-weight: 600;
+    color: var(--accent); border-top: 1px solid var(--border); border-radius: 0 0 9px 9px;
+    transition: background .12s ease;
+  }
+  .profile-menu-add:hover { background: var(--surface-2); }
+
+  /* Thread */
+  .thread { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+  .thread-inner { max-width: var(--thread-max); margin: 0 auto; padding: 26px 24px 36px; display: flex; flex-direction: column; gap: 22px; }
+
+  .turn { display: flex; gap: 13px; animation: fadeUp .28s ease both; }
+  .turn.user { justify-content: flex-end; }
+  .turn.user .turn-body { align-items: flex-end; max-width: 78%; }
+  .turn-body { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .turn.ai .turn-body { flex: 1; }
+
+  .avatar {
+    width: 30px; height: 30px; border-radius: 9px; flex: none; margin-top: 2px;
+    display: grid; place-items: center; color: var(--accent-ink);
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    box-shadow: 0 6px 16px -8px var(--accent-ring);
   }
 
-  .select-control:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent-subtle);
+  .bubble { font-size: 14.5px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; }
+  .user-bubble {
+    background: var(--user-bubble); color: var(--user-text);
+    padding: 11px 15px; border-radius: 16px 16px 4px 16px;
   }
+  .ai-bubble { color: var(--text); padding-top: 2px; }
+  .time { font-size: 10.5px; color: var(--muted); padding: 0 2px; }
+
+  /* Reasoning disclosure */
+  .reasoning { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
+  .reasoning-head {
+    width: 100%; display: flex; align-items: center; gap: 9px;
+    padding: 10px 13px; font-size: 12.5px; font-weight: 600; color: var(--text-2);
+    text-align: left; transition: background .14s ease;
+  }
+  .reasoning-head:hover { background: var(--surface-2); }
+  .reasoning-title { flex: 1; min-width: 0; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reasoning-spinner {
+    width: 13px; height: 13px; flex: none; border-radius: 50%;
+    border: 2px solid var(--accent-soft); border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+  }
+  .reasoning.done .reasoning-spinner { display: none; }
+  .chev { flex: none; color: var(--muted); transition: transform .2s ease; }
+  .reasoning.collapsed .chev { transform: rotate(-90deg); }
+  .reasoning-body { max-height: 340px; overflow-y: auto; padding: 4px 13px 12px; }
+  .reasoning.collapsed .reasoning-body { display: none; }
+
+  .thinking-dots { display: inline-flex; gap: 4px; align-items: center; }
+  .thinking-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: blink 1.4s infinite both; }
+  .thinking-dots span:nth-child(2) { animation-delay: .2s; }
+  .thinking-dots span:nth-child(3) { animation-delay: .4s; }
+  .reasoning.done .thinking-dots { display: none; }
+
+  /* Run timeline: workflow = green, AI = red */
+  .run-timeline { display: flex; flex-direction: column; gap: 10px; }
+  .run-phase {
+    border-radius: 11px; border: 1px solid var(--border); overflow: hidden;
+    background: var(--surface-2); animation: fadeUp .24s ease both;
+  }
+  .run-phase--workflow { border-color: var(--wf-ring); background: color-mix(in srgb, var(--wf-soft) 55%, var(--surface)); }
+  .run-phase--agent { border-color: var(--ai-ring); background: color-mix(in srgb, var(--ai-soft) 55%, var(--surface)); }
+  .run-phase-head {
+    display: flex; align-items: center; gap: 9px; padding: 9px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  }
+  .run-phase--workflow .run-phase-head { background: color-mix(in srgb, var(--wf-soft) 80%, transparent); }
+  .run-phase--agent .run-phase-head { background: color-mix(in srgb, var(--ai-soft) 80%, transparent); }
+  .run-phase-badge {
+    flex: none; font-size: 10px; font-weight: 800; letter-spacing: .35px; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; line-height: 1.2;
+  }
+  .run-phase--workflow .run-phase-badge { color: var(--wf-color); background: var(--wf-soft); border: 1px solid var(--wf-ring); }
+  .run-phase--agent .run-phase-badge { color: var(--ai-color); background: var(--ai-soft); border: 1px solid var(--ai-ring); }
+  .run-phase-title { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.45; min-width: 0; }
+  .run-phase-steps { display: flex; flex-direction: column; gap: 7px; padding: 8px 10px 10px; }
+  .run-phase-summary {
+    margin: 6px 0 4px; padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45;
+    color: var(--muted); background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+    border: 1px dashed var(--border);
+  }
+  .run-phase-summary-label { display: block; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+
+  .msg-steps { display: flex; flex-direction: column; gap: 8px; }
+  .step-item {
+    display: flex; gap: 10px; animation: fadeUp .22s ease both;
+    padding: 8px 9px; border-radius: 9px; border: 1px solid transparent;
+  }
+  .step-item--workflow { background: color-mix(in srgb, var(--wf-soft) 65%, transparent); border-color: color-mix(in srgb, var(--wf-ring) 55%, transparent); }
+  .step-item--agent { background: color-mix(in srgb, var(--ai-soft) 65%, transparent); border-color: color-mix(in srgb, var(--ai-ring) 55%, transparent); }
+  .step-num {
+    flex: none; min-width: 28px; height: 22px; padding: 0 7px; border-radius: 7px;
+    font-size: 11px; font-weight: 700; display: grid; place-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .step-item--workflow .step-num { background: var(--wf-soft); color: var(--wf-color); }
+  .step-item--agent .step-num { background: var(--ai-soft); color: var(--ai-color); }
+  .step-main { min-width: 0; padding-top: 1px; }
+  .step-action { font-size: 12.5px; font-weight: 600; color: var(--text); }
+  .step-item--workflow .step-action { color: color-mix(in srgb, var(--wf-color) 35%, var(--text)); }
+  .step-item--agent .step-action { color: color-mix(in srgb, var(--ai-color) 35%, var(--text)); }
+  .step-goal, .step-eval, .step-memory { font-size: 11.5px; color: var(--text-2); line-height: 1.5; margin-top: 3px; }
+  .step-eval { color: var(--muted); }
+
+  .run-pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800;
+    letter-spacing: .3px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px;
+    margin-right: 6px; vertical-align: middle;
+  }
+  .run-pill--workflow { color: var(--wf-color); background: var(--wf-soft); border: 1px solid var(--wf-ring); }
+  .run-pill--agent { color: var(--ai-color); background: var(--ai-soft); border: 1px solid var(--ai-ring); }
+  .run-legend { display: inline-flex; align-items: center; gap: 8px; margin-right: 10px; }
+  .run-legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--muted); }
+  .run-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .run-legend-dot--wf { background: var(--wf-color); box-shadow: 0 0 0 2px var(--wf-soft); }
+  .run-legend-dot--ai { background: var(--ai-color); box-shadow: 0 0 0 2px var(--ai-soft); }
+
+  .reasoning.run-mode--workflow { border-color: var(--wf-ring); }
+  .reasoning.run-mode--agent { border-color: var(--ai-ring); }
+  .reasoning.run-mode--workflow .reasoning-spinner { border-color: var(--wf-soft); border-top-color: var(--wf-color); }
+  .reasoning.run-mode--agent .reasoning-spinner { border-color: var(--ai-soft); border-top-color: var(--ai-color); }
+  .reasoning.run-mode--workflow .thinking-dots span { background: var(--wf-color); }
+  .reasoning.run-mode--agent .thinking-dots span { background: var(--ai-color); }
+
+  /* Usage meta */
+  .msg-meta { display: none; flex-direction: column; gap: 6px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .meta-chip {
+    font-size: 10.5px; font-weight: 600; color: var(--text-2);
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 3px 9px; border-radius: 999px; font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .meta-note { font-size: 11px; color: var(--warn); line-height: 1.5; padding: 2px; }
+
+  /* Feedback */
+  .feedback-card {
+    margin-top: 6px; padding: 12px 13px; border-radius: 12px;
+    background: var(--surface); border: 1px dashed var(--border-strong);
+    display: flex; flex-direction: column; gap: 9px; animation: fadeUp .3s ease;
+  }
+  .feedback-text { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .feedback-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-fb-like, .btn-fb-dislike, .btn-fb-save {
+    padding: 7px 13px; border-radius: 9px; font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent;
+    transition: transform .12s ease, background .14s ease, filter .14s ease;
+  }
+  .btn-fb-like:hover, .btn-fb-dislike:hover, .btn-fb-save:hover { transform: translateY(-1px); }
+  .btn-fb-like { background: var(--accent-soft); border-color: var(--accent-ring); color: var(--accent); }
+  .btn-fb-dislike { background: var(--danger-soft); border-color: rgba(255,93,115,.28); color: var(--danger); }
+  .btn-fb-save { background: var(--surface-3); border-color: var(--border-strong); color: var(--text); margin-left: auto; }
+  .feedback-save-input {
+    width: 100%; padding: 9px 11px; border-radius: 9px; font-size: 12px;
+    border: 1px solid var(--border-strong); background: var(--bg-soft); color: var(--text);
+    outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .feedback-save-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+
+  /* Empty state */
+  .empty-state { max-width: 560px; margin: 7vh auto 0; text-align: center; animation: fadeUp .4s ease; }
+  .empty-icon {
+    width: 60px; height: 60px; border-radius: 17px; margin: 0 auto 18px;
+    background: linear-gradient(140deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; color: var(--accent-ink);
+    box-shadow: 0 16px 36px -14px var(--accent-ring);
+  }
+  .empty-title { font-family: var(--font-display); font-weight: 800; font-size: 25px; letter-spacing: -.5px; }
+  .empty-sub { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+  .suggestions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 26px; text-align: left; }
+  .suggestion {
+    padding: 13px 15px; border-radius: 13px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 13px; color: var(--text-2); line-height: 1.45;
+    transition: transform .14s ease, border-color .14s ease, color .14s ease, background .14s ease;
+  }
+  .suggestion:hover { transform: translateY(-2px); border-color: var(--accent-ring); color: var(--text); background: var(--surface-2); }
+
+  /* ───────────────────────── COMPOSER ───────────────────────── */
+  .composer { padding: 10px 20px 18px; }
+  .composer-inner { max-width: var(--thread-max); margin: 0 auto; }
+  .composer-toolbar { display: flex; gap: 8px; margin-bottom: 9px; flex-wrap: wrap; }
+  .ctl {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 6px 4px 12px;
+  }
+  .ctl-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  .ctl .select-control {
+    width: auto; min-width: 96px; padding: 4px 26px 4px 8px; border: none; background-color: transparent;
+    font-size: 12px; font-weight: 600; color: var(--text);
+  }
+  .ctl .select-control:focus { box-shadow: none; }
 
   .input-wrap {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    background: var(--input-bg, var(--bg));
-    border: 1px solid var(--input-border, var(--border2));
-    border-radius: 12px;
-    padding: 10px 10px 10px 16px;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+    display: flex; align-items: flex-end; gap: 9px;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: 18px; padding: 9px 9px 9px 16px;
+    box-shadow: var(--shadow-sm); transition: border-color .15s ease, box-shadow .15s ease;
   }
-
-  .input-wrap:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent-subtle), inset 0 1px 2px rgba(0,0,0,0.03);
+  .input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+  #taskInput {
+    flex: 1; resize: none; border: none; outline: none; background: transparent;
+    color: var(--text); font-size: 14.5px; line-height: 1.55; max-height: 168px; padding: 6px 0;
   }
-
-  textarea {
-    flex: 1;
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-family: var(--font-body), sans-serif;
-    font-size: 13px;
-    line-height: 1.6;
-    resize: none;
-    max-height: 140px;
-    min-height: 22px;
-  }
-
-  textarea::placeholder { color: var(--muted); }
-
-  .btn-send {
-    width: 34px; height: 34px;
-    background: var(--accent);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .btn-send:hover { background: var(--accent2); transform: scale(1.05); }
-  .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
+  #taskInput::placeholder { color: var(--muted); }
   .btn-stop {
-    height: 34px;
-    padding: 0 12px;
-    background: transparent;
-    border: 1px solid #e85d5d;
-    border-radius: 8px;
-    color: #ff8a8a;
-    font-family: var(--font-body), sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: none;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.15s;
+    display: none; align-items: center; gap: 6px; flex: none;
+    padding: 9px 14px; border-radius: 12px; font-size: 12.5px; font-weight: 600;
+    background: var(--danger-soft); color: var(--danger); border: 1px solid rgba(255,93,115,.3);
+    transition: filter .14s ease, transform .12s ease;
   }
-
-  .btn-stop:hover { background: rgba(232, 93, 93, 0.12); color: #ffb4b4; }
-  .btn-stop:disabled { opacity: 0.45; cursor: not-allowed; }
-
+  .btn-stop:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-send {
+    width: 40px; height: 40px; flex: none; border-radius: 12px;
+    background: var(--accent); display: grid; place-items: center;
+    box-shadow: 0 8px 18px -8px var(--accent-ring);
+    transition: filter .15s ease, transform .12s ease, opacity .15s ease;
+  }
+  .btn-send:hover { filter: brightness(1.06); transform: translateY(-1px); }
+  .btn-send:disabled { opacity: .45; cursor: not-allowed; transform: none; filter: none; }
   .input-hint {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 8px;
-    padding: 0 4px;
-    display: flex;
-    justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 9px; padding: 0 6px; font-size: 11px; color: var(--muted);
   }
-
+  #stepHint {
+    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-align: right; color: var(--text-2); display: flex; align-items: center;
+    justify-content: flex-end; gap: 6px;
+  }
   .kbd {
-    display: inline-block;
-    padding: 1px 5px;
-    background: var(--border);
-    border-radius: 3px;
-    font-size: 10px;
-    color: var(--muted);
+    font-family: var(--font); font-size: 10px; font-weight: 600; color: var(--text-2);
+    background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 6px; padding: 1px 6px;
   }
 
-  /* ── FEEDBACK SYSTEM ── */
-  .feedback-card {
-    margin-top: 12px;
-    padding: 12px 14px;
-    background: var(--card-bg);
-    border: 1px dashed var(--border2);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    animation: fadeUp 0.3s ease;
-  }
-
-  .feedback-text {
-    font-size: 11px;
-    color: var(--muted);
-    font-weight: 500;
-  }
-
-  .feedback-actions {
-    display: flex;
-    gap: 8px;
-  }
-
-  .btn-fb-like, .btn-fb-dislike {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    cursor: pointer;
-    font-family: var(--font-body), sans-serif;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.12s;
-  }
-
-  .btn-fb-like {
-    background: rgba(0, 229, 160, 0.1);
-    border: 1px solid rgba(0, 229, 160, 0.2);
-    color: var(--accent);
-  }
-
-  .btn-fb-like:hover {
-    background: rgba(0, 229, 160, 0.2);
-  }
-
-  .btn-fb-dislike {
-    background: rgba(232, 93, 93, 0.1);
-    border: 1px solid rgba(232, 93, 93, 0.2);
-    color: #ff8a8a;
-  }
-
-  .btn-fb-dislike:hover {
-    background: rgba(232, 93, 93, 0.2);
-  }
-
-  .feedback-save-input {
-    width: 100%;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--border2);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 11px;
-    outline: none;
-    font-family: var(--font-body), sans-serif;
-    transition: border-color 0.15s;
-  }
-
-  .feedback-save-input:focus {
-    border-color: var(--accent);
-  }
-
-  /* ── MODALS & OVERLAYS ── */
-  @keyframes modalFadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
+  /* ───────────────────────── MODALS ───────────────────────── */
   .modal {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
+    position: fixed; inset: 0; background: rgba(4,6,11,.55); backdrop-filter: blur(8px);
+    z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;
+    animation: fadeUp .18s ease;
   }
-
   .modal-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 440px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    box-shadow: var(--shadow);
-    animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: 18px;
+    width: 100%; max-width: 460px; padding: 24px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: var(--shadow); animation: fadeUp .22s cubic-bezier(.16,1,.3,1);
   }
+  .modal-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+  .modal-tabs { display: flex; gap: 4px; background: var(--surface-2); border-radius: 11px; padding: 4px; }
+  .modal-tab { flex: 1; text-align: center; padding: 9px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 8px; color: var(--muted); transition: background .14s ease, color .14s ease; }
+  .modal-tab.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm); }
+  .modal-label { font-size: 11.5px; color: var(--text-2); font-weight: 500; margin-bottom: 6px; display: block; }
+  .modal-note { font-size: 11.5px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); padding: 11px; border-radius: 10px; line-height: 1.55; }
+  .modal-note.warn { color: var(--danger); background: var(--danger-soft); border-color: rgba(255,93,115,.22); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .btn-ghost { padding: 9px 16px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--text-2); border: 1px solid var(--border-strong); transition: background .14s ease, color .14s ease; }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+  .btn-primary { padding: 9px 18px; border-radius: 10px; font-size: 12.5px; font-weight: 650; background: var(--accent); color: var(--accent-ink); transition: filter .14s ease, transform .12s ease; }
+  .btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .wf-template { font-size: 12px; color: var(--text-2); background: var(--bg-soft); border: 1px solid var(--border); padding: 11px; border-radius: 10px; line-height: 1.55; word-break: break-word; }
 
-  @media (max-width: 1080px) {
-    .workspace {
-      grid-template-columns: 1fr;
-      grid-template-rows: minmax(220px, 35%) minmax(0, 1.65fr);
-    }
+  .nav-overlay { display: none; position: fixed; inset: 0; background: rgba(4,6,11,.5); backdrop-filter: blur(2px); z-index: 40; }
 
-    .activity-pane {
-      border-left: none;
-      border-top: 1px solid var(--border);
-    }
+  /* ───────────────────────── RESPONSIVE ───────────────────────── */
+  @media (max-width: 900px) {
+    .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 60; transform: translateX(-100%); margin-left: 0 !important; box-shadow: var(--shadow); }
+    body.nav-open .sidebar { transform: none; }
+    body.nav-open .nav-overlay { display: block; }
+    .suggestions { grid-template-columns: 1fr; }
+    .turn.user .turn-body { max-width: 88%; }
   }
-
-  @media (max-width: 780px) {
-    body {
-      flex-direction: column;
-    }
-
-    .sidebar {
-      width: 100%;
-      min-width: 0;
-      height: auto;
-      max-height: 34vh;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .topbar {
-      padding: 12px 14px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .topbar-meta {
-      max-width: 100%;
-      text-align: left;
-    }
-
-    .profile-container {
-      margin-left: auto;
-    }
-
-    .messages,
-    .activity-feed {
-      padding: 14px;
-    }
-
-    .msg-body {
-      max-width: 86%;
-    }
+  @media (min-width: 901px) { .topbar .nav-toggle { display: none; } }
+  @media (max-width: 560px) {
+    .thread-inner, .composer { padding-left: 14px; padding-right: 14px; }
+    .workspace-badge { max-width: 150px; padding: 6px 9px; }
+    .workspace-badge #activeProfileBadge { font-size: 11px; }
+    .composer-toolbar .ctl-label { display: none; }
   }
 </style>
 </head>
 <body>
 
+<div class="nav-overlay" onclick="toggleSidebar()"></div>
+
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <div class="sidebar-header">
-    <div class="logo">
-      <div class="logo-dot"></div>
-      AI BROWSER
-    </div>
-    <button class="btn-new" onclick="newChat()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  <div class="brand">
+    <div class="brand-mark">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.4" fill="currentColor"/><path d="M8.5 13v2M15.5 13v2"/>
       </svg>
-      Chat mới
+    </div>
+    <div class="brand-name">AI Browser<small>Agent điều khiển trình duyệt</small></div>
+  </div>
+
+  <div class="sb-pad">
+    <button class="btn-new" onclick="newChat()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Cuộc trò chuyện mới
     </button>
   </div>
 
-  <div class="chat-list" id="chatList" style="flex: 1; min-height: 120px;"></div>
-
-  <div class="workflows-section" style="height: 42%; display: flex; flex-direction: column; border-top: 1px solid var(--border); overflow: hidden;">
-    <div style="padding: 12px 14px 6px; font-family: var(--font-heading), sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); display:flex; justify-content:space-between; align-items:center;">
-      <span>Quy trình đã học</span>
-      <span id="wfCount" style="background: var(--border2); padding: 2px 7px; border-radius: 999px; font-size: 9px; color: var(--text); font-weight:600;">0</span>
+  <div class="sb-scroll">
+    <div>
+      <div class="section-title"><span>Lịch sử</span></div>
+      <div class="chat-list" id="chatList"></div>
     </div>
-    <div id="workflowsList" style="flex: 1; overflow-y: auto; padding: 4px 8px;"></div>
+
+    <div>
+      <div class="section-title"><span>Workspace</span><span class="pill" id="wfCount">0</span></div>
+      <div class="workspace-card">
+        <div class="ws-row">
+          <select id="userProfile" class="select-control" onchange="changeProfile()"></select>
+          <button class="icon-btn" onclick="createProfile()" title="Thêm hồ sơ mới">+</button>
+        </div>
+        <div class="ws-meta" id="profileWorkspaceMeta">Đang tải hồ sơ...</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title"><span>Quy trình đã học</span><span class="wf-name-tag" id="wfProfileName"></span></div>
+      <div class="wf-list" id="workflowsList"></div>
+    </div>
   </div>
 
   <div class="sidebar-footer">
-    <div class="status-badge">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Sẵn sàng</span>
-    </div>
+    <div class="status-badge"><div class="status-dot" id="statusDot"></div><span id="statusText">Sẵn sàng</span></div>
+    <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Chuyển sáng/tối" aria-label="Chuyển sáng/tối">
+      <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+      <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
   </div>
 </aside>
 
 <!-- MAIN -->
-<main class="main">
-  <div class="topbar" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-    <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+<main class="app-main">
+  <div class="topbar">
+    <button class="ghost-btn nav-toggle" onclick="toggleSidebar()" title="Ẩn/hiện thanh bên" aria-label="Ẩn/hiện thanh bên">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="topbar-titles">
       <div class="chat-title" id="chatTitle">Chọn hoặc tạo chat mới</div>
       <div class="topbar-meta" id="topbarMeta"></div>
     </div>
-    <div class="profile-container" style="display:flex; align-items:center; gap:8px;">
-      <button type="button" class="theme-toggle" onclick="toggleTheme()" title="Chuyển sáng/tối" aria-label="Chuyển sáng/tối">
-        <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>
-        </svg>
-        <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-        </svg>
+    <div class="profile-switcher">
+      <button type="button" class="workspace-badge" id="profileSwitcherBtn" onclick="toggleProfileMenu(event)" title="Đổi hồ sơ" aria-haspopup="true" aria-expanded="false">
+        <div class="status-dot"></div><span id="activeProfileBadge">Hồ sơ: Default</span>
+        <svg class="ws-chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <span style="font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">Hồ sơ:</span>
-      <select id="userProfile" class="select-control" style="width:130px; padding:6px 10px; font-size:11px; border-radius:8px;" onchange="changeProfile()"></select>
-      <button class="btn-new" onclick="createProfile()" title="Thêm hồ sơ mới" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:14px; font-weight:600;">+</button>
+      <div class="profile-menu" id="profileMenu">
+        <div class="profile-menu-head">Chọn hồ sơ</div>
+        <div class="profile-menu-list" id="profileMenuList"></div>
+        <button type="button" class="profile-menu-add" onclick="createProfile(); closeProfileMenu();">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Thêm hồ sơ mới
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="workspace">
-    <section class="chat-pane" aria-label="Chat và kết quả">
-      <div class="pane-head">
-        <div class="pane-title">Chat & kết quả</div>
-        <div class="pane-subtle">Trao đổi chính</div>
-      </div>
-      <div class="messages" id="messages">
-        <div class="empty-state" id="emptyState">
-          <div class="empty-icon">🤖</div>
-          <div class="empty-title">AI Browser Agent</div>
-          <div class="empty-sub">Ra lệnh bằng tiếng Việt.<br>AI sẽ tự điều khiển trình duyệt.</div>
-          <div class="suggestions">
-            <div class="suggestion" onclick="useSuggestion(this)">Mở YouTube tìm nhạc trẻ</div>
-            <div class="suggestion" onclick="useSuggestion(this)">Vào Google tìm tin tức hôm nay</div>
-            <div class="suggestion" onclick="useSuggestion(this)">Kiểm tra thời tiết Hồ Chí Minh</div>
-          </div>
+  <div class="thread" id="thread">
+    <div class="thread-inner" id="messages">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.4" fill="currentColor"/><path d="M8.5 13v2M15.5 13v2"/></svg>
+        </div>
+        <div class="empty-title">AI Browser Agent</div>
+        <div class="empty-sub">Ra lệnh bằng tiếng Việt — AI sẽ tự điều khiển trình duyệt để hoàn thành.</div>
+        <div class="suggestions">
+          <div class="suggestion" onclick="useSuggestion(this)">Mở YouTube tìm nhạc trẻ</div>
+          <div class="suggestion" onclick="useSuggestion(this)">Vào Google tìm tin tức hôm nay</div>
+          <div class="suggestion" onclick="useSuggestion(this)">Kiểm tra thời tiết Hồ Chí Minh</div>
+          <div class="suggestion" onclick="useSuggestion(this)">Tìm bài hát mới nhất của Sơn Tùng</div>
         </div>
       </div>
-    </section>
-    <aside class="activity-pane" aria-label="Suy nghĩ và tiến trình AI">
-      <div class="pane-head">
-        <div class="pane-title">Suy nghĩ AI</div>
-        <div class="pane-subtle" id="activityMeta">Đang chờ</div>
-      </div>
-      <div class="activity-feed" id="activityFeed">
-        <div class="activity-empty" id="activityEmpty">Các bước xử lý, đánh giá và chi phí sẽ hiện ở đây khi AI bắt đầu chạy.</div>
-      </div>
-    </aside>
+    </div>
   </div>
 
-  <div class="input-area">
-    <div class="control-row">
-      <label class="select-wrap">
-        <span class="select-label">Model chạy</span>
-        <select id="executorModel" class="select-control" onchange="saveConfig()"></select>
-      </label>
-      <label class="select-wrap">
-        <span class="select-label">Planner</span>
-        <select id="plannerModel" class="select-control" onchange="saveConfig()"></select>
-      </label>
-      <label class="select-wrap">
-        <span class="select-label">Vision</span>
-        <select id="visionMode" class="select-control" onchange="saveConfig()"></select>
-      </label>
-    </div>
-    <div class="input-wrap">
-      <textarea
-        id="taskInput"
-        placeholder="Ra lệnh cho AI... (VD: vào youtube mở 1 bài nhạc trẻ)"
-        rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <button type="button" class="btn-stop" id="stopBtn" onclick="stopTask()" title="Dừng hẳn task đang chạy">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <rect x="6" y="6" width="12" height="12" rx="1"/>
-        </svg>
-        Dừng
-      </button>
-      <button class="btn-send" id="sendBtn" onclick="sendMessage()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--btn-send-icon)" stroke-width="2.5">
-          <line x1="22" y1="2" x2="11" y2="13"/>
-          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
-    </div>
-    <div class="input-hint">
-      <span><span class="kbd">Enter</span> gửi &nbsp; <span class="kbd">Shift+Enter</span> xuống dòng</span>
-      <span id="stepHint"></span>
+  <div class="composer">
+    <div class="composer-inner">
+      <div class="composer-toolbar">
+        <label class="ctl"><span class="ctl-label">Model</span><select id="executorModel" class="select-control" onchange="saveConfig()"></select></label>
+        <label class="ctl"><span class="ctl-label">Planner</span><select id="plannerModel" class="select-control" onchange="saveConfig()"></select></label>
+        <label class="ctl"><span class="ctl-label">Vision</span><select id="visionMode" class="select-control" onchange="saveConfig()"></select></label>
+      </div>
+      <div class="input-wrap">
+        <textarea id="taskInput" placeholder="Ra lệnh cho AI... (VD: vào YouTube mở một bài nhạc trẻ)" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button type="button" class="btn-stop" id="stopBtn" onclick="stopTask()" title="Dừng task đang chạy">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Dừng
+        </button>
+        <button class="btn-send" id="sendBtn" onclick="sendMessage()" title="Gửi">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">
+        <span><span class="kbd">Enter</span> gửi · <span class="kbd">Shift+Enter</span> xuống dòng</span>
+        <span class="run-legend" aria-hidden="true">
+          <span class="run-legend-item"><span class="run-legend-dot run-legend-dot--wf"></span>Workflow</span>
+          <span class="run-legend-item"><span class="run-legend-dot run-legend-dot--ai"></span>AI</span>
+        </span>
+        <span id="stepHint"></span>
+      </div>
     </div>
   </div>
 </main>
@@ -1072,12 +692,12 @@
 <!-- WORKFLOW RUN MODAL -->
 <div id="workflowModal" class="modal">
   <div class="modal-content">
-    <div style="font-family: var(--font-heading), sans-serif; font-size:16px; font-weight:700; color:var(--text);" id="modalWfTitle">Chạy kịch bản</div>
-    <div id="modalWfTemplate" style="font-size:11px; color:var(--muted); background:var(--bg); border:1px solid var(--border2); padding:10px; border-radius:8px; line-height:1.5; word-break:break-all;"></div>
+    <div class="modal-title" id="modalWfTitle">Chạy quy trình</div>
+    <div class="wf-template" id="modalWfTemplate"></div>
     <div id="modalWfInputs" style="display:flex; flex-direction:column; gap:12px;"></div>
-    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
-      <button class="btn-new" style="width:auto; padding:8px 16px;" onclick="closeWorkflowModal()">Hủy</button>
-      <button class="btn-send" style="width:auto; padding:8px 20px; border-radius:8px; height:auto; color:var(--btn-send-icon-inv, #0d0f12); font-weight:600; font-size:12px;" onclick="executeWorkflowFromModal()">Chạy ngay</button>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeWorkflowModal()">Hủy</button>
+      <button class="btn-primary" onclick="executeWorkflowFromModal()">Chạy ngay</button>
     </div>
   </div>
 </div>
@@ -1085,14 +705,27 @@
 <!-- CREATE PROFILE MODAL -->
 <div id="profileModal" class="modal">
   <div class="modal-content">
-    <div style="font-family: var(--font-heading), sans-serif; font-size:16px; font-weight:700; color:var(--text);">Tạo hồ sơ mới</div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <label style="font-size:11px; color:var(--muted); font-weight:500;">Tên hồ sơ:</label>
-      <input type="text" id="newProfileName" class="feedback-save-input" style="font-size:12px; padding:10px 12px; border-radius:10px;" placeholder="Ví dụ: Tú Ka Wa, Cá Nhân..." value="" />
+    <div class="modal-title">Hồ sơ trình duyệt</div>
+    <div class="modal-tabs">
+      <div id="tabIndependent" class="modal-tab active" onclick="switchProfileTab('independent')">Độc lập (Agent)</div>
+      <div id="tabSystem" class="modal-tab" onclick="switchProfileTab('system')">Có sẵn (Chrome)</div>
     </div>
-    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
-      <button class="btn-new" style="width:auto; padding:8px 16px;" onclick="closeProfileModal()">Hủy</button>
-      <button class="btn-send" style="width:auto; padding:8px 20px; border-radius:8px; height:auto; color:var(--btn-send-icon-inv, #0d0f12); font-weight:600; font-size:12px;" onclick="submitCreateProfile()">Tạo ngay</button>
+
+    <div id="divIndependentProfile">
+      <label class="modal-label">Tên hồ sơ độc lập</label>
+      <input type="text" id="newProfileName" class="feedback-save-input" placeholder="Ví dụ: Tú Ka Wa, Cá Nhân..." />
+      <div class="modal-note" style="margin-top:12px;">💡 <strong>Khuyên dùng:</strong> Tạo một thư mục trình duyệt riêng cho Agent. Bạn chỉ cần đăng nhập một lần khi trình duyệt Agent mở ra — không ảnh hưởng tới Chrome bạn dùng hằng ngày.</div>
+    </div>
+
+    <div id="divSystemProfile" style="display:none;">
+      <label class="modal-label">Chọn hồ sơ Chrome từ máy tính</label>
+      <select id="systemChromeProfileSelect" class="select-control"></select>
+      <div class="modal-note warn" style="margin-top:12px;">⚠️ <strong>Lưu ý:</strong> Khi liên kết Chrome thật, hãy <strong>đóng hoàn toàn mọi cửa sổ Google Chrome</strong> trước khi chạy task để tránh lỗi xung đột hồ sơ (profile in use).</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeProfileModal()">Hủy</button>
+      <button class="btn-primary" onclick="submitCreateProfile()">Tạo ngay</button>
     </div>
   </div>
 </div>
@@ -1106,22 +739,48 @@ let visionModeOptions = [];
 let modelConfig = { executor_model: '', planner_model: '', vision_mode: 'auto' };
 let currentRunUsage = null;
 let currentProfile = 'Default';
+let profileOptions = [];
 let savedWorkflows = {};
 let activeRunWf = null;
 let pendingWorkflowId = null;
+let activeProfileTab = 'independent';
+let systemProfilesList = [];
+let activeWfDomain = null;
+let activeWfId = null;
+let activeFbAiId = null;
+let activeFbChatId = null;
 
+const AI_AVATAR = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.4" fill="currentColor"/><path d="M8.5 13v2M15.5 13v2"/></svg>`;
+const CHEVRON = `<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+// ── Theme ───────────────────────────────────────────────────────────────────
 function initTheme() {
   const saved = localStorage.getItem('ui_theme') || 'dark';
   document.documentElement.dataset.theme = saved === 'light' ? 'light' : 'dark';
 }
-
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
   document.documentElement.dataset.theme = next;
   localStorage.setItem('ui_theme', next);
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────
+// ── Layout ──────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    document.body.classList.toggle('nav-open');
+  } else {
+    document.body.classList.toggle('nav-collapsed');
+  }
+}
+function closeMobileNav() {
+  document.body.classList.remove('nav-open');
+}
+function toggleReasoning(el) {
+  const box = el.closest('.reasoning');
+  if (box) box.classList.toggle('collapsed');
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
 async function init() {
   initTheme();
   await loadConfig();
@@ -1146,21 +805,15 @@ function renderModelOptions() {
   const executor = document.getElementById('executorModel');
   const planner = document.getElementById('plannerModel');
   const vision = document.getElementById('visionMode');
-  const optionHtml = modelOptions.map(model => `
-    <option value="${escHtml(model.id)}">${escHtml(model.label)}</option>
-  `).join('');
+  const optionHtml = modelOptions.map(model => `<option value="${escHtml(model.id)}">${escHtml(model.label)}</option>`).join('');
   executor.innerHTML = optionHtml;
   planner.innerHTML = optionHtml;
   executor.value = modelConfig.executor_model || modelOptions[0]?.id || '';
   planner.value = modelConfig.planner_model || modelOptions[0]?.id || '';
   if (vision) {
     const visionHtml = (visionModeOptions.length ? visionModeOptions : [
-      { id: 'auto', label: 'Vision tự động' },
-      { id: 'on', label: 'Luôn vision' },
-      { id: 'off', label: 'Chỉ text/DOM' },
-    ]).map(mode => `
-      <option value="${escHtml(mode.id)}" title="${escHtml(mode.description || '')}">${escHtml(mode.label)}</option>
-    `).join('');
+      { id: 'auto', label: 'Vision tự động' }, { id: 'on', label: 'Luôn vision' }, { id: 'off', label: 'Chỉ text/DOM' },
+    ]).map(mode => `<option value="${escHtml(mode.id)}" title="${escHtml(mode.description || '')}">${escHtml(mode.label)}</option>`).join('');
     vision.innerHTML = visionHtml;
     vision.value = modelConfig.vision_mode || 'auto';
   }
@@ -1168,11 +821,7 @@ function renderModelOptions() {
 
 async function saveConfig() {
   const payload = getSelectedModels();
-  const res = await fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   const data = await res.json();
   modelOptions = data.models || modelOptions;
   modelConfig.executor_model = data.executor_model;
@@ -1194,63 +843,24 @@ function visionModeLabel(modeId) {
   const found = visionModeOptions.find(item => item.id === modeId);
   return found ? found.label : modeId || 'auto';
 }
-
 function modelLabel(modelId) {
   const found = modelOptions.find(item => item.id === modelId);
   return found ? found.label : modelId || '—';
 }
 
-// ── New chat ──────────────────────────────────────────────────────────────
-function renderActivityEmpty() {
-  const feed = document.getElementById('activityFeed');
-  const meta = document.getElementById('activityMeta');
-  if (!feed) return;
-  feed.innerHTML = `<div class="activity-empty" id="activityEmpty">Các bước xử lý, đánh giá và chi phí sẽ hiện ở đây khi AI bắt đầu chạy.</div>`;
-  if (meta) meta.textContent = 'Đang chờ';
-}
-
-function ensureActivityFeed() {
-  const feed = document.getElementById('activityFeed');
-  const empty = document.getElementById('activityEmpty');
-  if (empty) empty.remove();
-  return feed;
-}
-
-function setActivityMeta(text) {
-  const meta = document.getElementById('activityMeta');
-  if (meta) meta.textContent = text || '';
-}
-
-function appendHistoryActivity(metadata, time = '') {
-  if (!metadata?.usage) return;
-  const feed = ensureActivityFeed();
-  if (!feed) return;
-
-  const card = document.createElement('div');
-  card.className = 'activity-card';
-  card.innerHTML = `
-    <div class="activity-status">
-      <span>Tổng kết lượt chạy</span>
-    </div>
-    <div class="msg-meta" style="display:block">${renderUsageHtml(metadata.usage, metadata.state === 'needs_input', metadata.state)}</div>
-    <div class="msg-time">${time || ''}</div>
-  `;
-  feed.appendChild(card);
-  feed.scrollTop = feed.scrollHeight;
-  setActivityMeta('Lịch sử');
-}
-
+// ── New chat / empty state ──────────────────────────────────────────────────
 async function newChat() {
   const res = await fetch('/api/new_chat', { method: 'POST' });
   const data = await res.json();
   currentChatId = data.chat_id;
   currentRunUsage = null;
   renderEmpty();
-  document.getElementById('chatTitle').textContent = 'Chat mới';
+  document.getElementById('chatTitle').textContent = 'Cuộc trò chuyện mới';
   document.getElementById('stepHint').textContent = '';
   setStatus(false, 'Sẵn sàng');
   updateTopbarMeta();
   await loadChatList();
+  closeMobileNav();
   document.getElementById('taskInput').focus();
 }
 
@@ -1258,47 +868,50 @@ function renderEmpty() {
   const m = document.getElementById('messages');
   m.innerHTML = `
     <div class="empty-state" id="emptyState">
-      <div class="empty-icon">🤖</div>
+      <div class="empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.4" fill="currentColor"/><path d="M8.5 13v2M15.5 13v2"/></svg>
+      </div>
       <div class="empty-title">AI Browser Agent</div>
-      <div class="empty-sub">Ra lệnh bằng tiếng Việt.<br>AI sẽ tự điều khiển trình duyệt.</div>
+      <div class="empty-sub">Ra lệnh bằng tiếng Việt — AI sẽ tự điều khiển trình duyệt để hoàn thành.</div>
       <div class="suggestions">
         <div class="suggestion" onclick="useSuggestion(this)">Mở YouTube tìm nhạc trẻ</div>
         <div class="suggestion" onclick="useSuggestion(this)">Vào Google tìm tin tức hôm nay</div>
         <div class="suggestion" onclick="useSuggestion(this)">Kiểm tra thời tiết Hồ Chí Minh</div>
+        <div class="suggestion" onclick="useSuggestion(this)">Tìm bài hát mới nhất của Sơn Tùng</div>
       </div>
     </div>`;
-  renderActivityEmpty();
 }
 
-// ── Load chat list ────────────────────────────────────────────────────────
+// Kept for backwards-compatibility with older callers (now a no-op in single-column UI).
+function renderActivityEmpty() {}
+function ensureActivityFeed() { return document.getElementById('messages'); }
+function setActivityMeta() {}
+function appendHistoryActivity() {}
+
+// ── Chat list ───────────────────────────────────────────────────────────────
 async function loadChatList() {
-  const res = await fetch('/api/history');
+  const res = await fetch(`/api/history?user_profile=${encodeURIComponent(currentProfile)}`);
   const chats = await res.json();
   const list = document.getElementById('chatList');
-
   if (chats.length === 0) {
-    list.innerHTML = `<div style="padding:16px;font-size:11px;color:var(--muted);text-align:center">Chưa có chat nào</div>`;
+    list.innerHTML = `<div style="padding:14px 10px; font-size:12px; color:var(--muted); text-align:center;">Chưa có cuộc trò chuyện nào</div>`;
     return;
   }
-
   list.innerHTML = chats.map(c => `
-    <div class="chat-item ${c.id === currentChatId ? 'active' : ''}"
-         onclick="loadChat('${c.id}')">
+    <div class="chat-item ${c.id === currentChatId ? 'active' : ''}" onclick="loadChat('${c.id}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex:none; opacity:.6;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <div class="chat-item-text">${escHtml(c.title)}</div>
       <button class="chat-item-del" onclick="deleteChat(event,'${c.id}')" title="Xóa">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-// ── Load existing chat ────────────────────────────────────────────────────
+// ── Load existing chat ──────────────────────────────────────────────────────
 async function loadChat(chatId) {
   currentChatId = chatId;
   currentRunUsage = null;
-  const res = await fetch('/api/history');
+  const res = await fetch(`/api/history?user_profile=${encodeURIComponent(currentProfile)}`);
   const chats = await res.json();
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return;
@@ -1309,16 +922,15 @@ async function loadChat(chatId) {
 
   const m = document.getElementById('messages');
   m.innerHTML = '';
-  renderActivityEmpty();
-
   chat.messages.forEach(msg => {
-    appendMessage(msg.role, msg.content, msg.time, false, msg.metadata || null);
-    if (msg.role !== 'user') appendHistoryActivity(msg.metadata || null, msg.time);
+    if (msg.role === 'user') appendMessage('user', msg.content, msg.time, false);
+    else appendMessage('ai', msg.content, msg.time, false, msg.metadata || null);
   });
 
   currentRunUsage = findLastUsage(chat);
   updateTopbarMeta(chat, currentRunUsage);
   m.scrollTop = m.scrollHeight;
+  closeMobileNav();
   await loadChatList();
 }
 
@@ -1336,24 +948,15 @@ function updateTopbarMeta(chat = null, usage = null) {
   const selected = getSelectedModels();
   const activeUsage = usage || currentRunUsage || findLastUsage(chat);
   const parts = [];
-
-  if (chat?.created_at) {
-    parts.push(new Date(chat.created_at).toLocaleDateString('vi-VN'));
-  }
-
-  parts.push(`${modelLabel(selected.executor_model)} / ${modelLabel(selected.planner_model)} / ${visionModeLabel(selected.vision_mode)}`);
-
+  if (chat?.created_at) parts.push(new Date(chat.created_at).toLocaleDateString('vi-VN'));
+  parts.push(`${modelLabel(selected.executor_model)} · ${modelLabel(selected.planner_model)} · ${visionModeLabel(selected.vision_mode)}`);
   if (activeUsage?.totals) {
-    parts.push(`${formatVnd(activeUsage.totals.cost_vnd)} • ${formatInt(activeUsage.totals.total_tokens)} tok • ${formatDuration(activeUsage.elapsed_seconds || 0)}`);
-    if (activeUsage.waiting_for_user) {
-      parts.push('đang chờ bạn trả lời');
-    }
+    parts.push(`${formatVnd(activeUsage.totals.cost_vnd)} · ${formatInt(activeUsage.totals.total_tokens)} tok · ${formatDuration(activeUsage.elapsed_seconds || 0)}`);
+    if (activeUsage.waiting_for_user) parts.push('đang chờ bạn trả lời');
   }
-
-  metaEl.textContent = parts.join(' • ');
+  metaEl.textContent = parts.join('  •  ');
 }
 
-// ── Delete chat ───────────────────────────────────────────────────────────
 async function deleteChat(e, chatId) {
   e.stopPropagation();
   await fetch(`/api/history/${chatId}`, { method: 'DELETE' });
@@ -1364,36 +967,23 @@ async function deleteChat(e, chatId) {
 function setStopButtonVisible(visible) {
   const stopBtn = document.getElementById('stopBtn');
   if (!stopBtn) return;
-  stopBtn.style.display = visible ? 'flex' : 'none';
+  stopBtn.style.display = visible ? 'inline-flex' : 'none';
   stopBtn.disabled = false;
 }
 
 async function stopTask() {
   if (!isLoading || !currentChatId) return;
-
   const stopBtn = document.getElementById('stopBtn');
   if (stopBtn) stopBtn.disabled = true;
   setStatus(true, 'Đang dừng task...');
   document.getElementById('stepHint').textContent = 'Đang gửi lệnh dừng tới server...';
-
   try {
-    await fetch('/api/stop', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: currentChatId }),
-    });
-  } catch (e) {
-    /* vẫn hủy stream phía client */
-  }
-
-  if (activeStreamAbort) {
-    try {
-      activeStreamAbort.abort();
-    } catch (e) {}
-  }
+    await fetch('/api/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: currentChatId }) });
+  } catch (e) {}
+  if (activeStreamAbort) { try { activeStreamAbort.abort(); } catch (e) {} }
 }
 
-// ── Send message ──────────────────────────────────────────────────────────
+// ── Send message ────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (isLoading) return;
   const input = document.getElementById('taskInput');
@@ -1418,6 +1008,7 @@ async function sendMessage() {
   const streamAbort = new AbortController();
   activeStreamAbort = streamAbort;
   appendThinking(aiId);
+  activeRunTracks.delete(aiId);
   updateTopbarMeta();
 
   let completed = false;
@@ -1441,42 +1032,55 @@ async function sendMessage() {
       }),
     });
 
-    if (!res.ok || !res.body) {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     const parseChunk = createSseParser(data => {
       if (data.type === 'status') {
-        updateThinkingStatus(aiId, data.text || 'Đang xử lý...');
-        setStatus(true, data.text || 'Đang xử lý...');
-        document.getElementById('stepHint').textContent = data.text || '';
+        const runner = resolveRunner(data);
+        if (runner) {
+          const track = ensureRunTrack(aiId);
+          if (track.runner !== runner || !track.stepsEl) {
+            ensureRunPhase(aiId, runner, data.text || '');
+          }
+        }
+        updateThinkingStatus(aiId, data.text || 'Đang xử lý...', runner);
+        setStatus(true, data.text || 'Đang xử lý...', runner);
+        renderStepHint(data.text || '', runner);
       }
-
       if (data.type === 'step') {
-        appendStep(aiId, data.step, data.action, data.goal, data.evaluation, data.memory);
+        const runner = resolveRunner(data) || 'agent';
+        ensureRunPhase(aiId, runner, null);
+        appendStep(aiId, data.step, data.action, data.goal, data.evaluation, data.memory, runner);
         const stepText = data.text || `Bước ${data.step}: ${data.action}`;
-        updateThinkingStatus(aiId, stepText);
-        setStatus(true, stepText);
-        document.getElementById('stepHint').textContent = stepText;
+        updateThinkingStatus(aiId, stepText, runner);
+        setStatus(true, stepText, runner);
+        renderStepHint(stepText, runner);
       }
-
       if (data.type === 'usage') {
         currentRunUsage = data.usage || null;
         updateThinkingMeta(aiId, currentRunUsage);
         updateTopbarMeta(null, currentRunUsage);
       }
-
+      if (data.type === 'phase_done') {
+        currentRunUsage = data.usage || currentRunUsage;
+        if (currentRunUsage) {
+          updateThinkingMeta(aiId, currentRunUsage);
+          updateTopbarMeta(null, currentRunUsage);
+        }
+        appendPhaseDone(aiId, data.text, data.phase);
+        setStatus(true, `Pha ${data.phase || '?'} xong — đang chạy bước tiếp...`);
+        renderStepHint(`Pha ${data.phase || '?'} xong — đang tiếp tục...`, null);
+      }
       if (data.type === 'done') {
         completed = true;
         currentRunUsage = data.usage || currentRunUsage;
         finishThinking(aiId, data.text || 'Hoàn thành', 'Hoàn tất', currentRunUsage, false);
-        document.getElementById('stepHint').textContent = '';
+        renderStepHint('', null);
         setStatus(false, 'Sẵn sàng');
         updateTopbarMeta(null, currentRunUsage);
       }
-
       if (data.type === 'needs_input') {
         completed = true;
         currentRunUsage = data.usage || currentRunUsage;
@@ -1485,7 +1089,6 @@ async function sendMessage() {
         setStatus(false, 'Đang chờ bạn trả lời');
         updateTopbarMeta(null, currentRunUsage);
       }
-
       if (data.type === 'error') {
         completed = true;
         currentRunUsage = data.usage || currentRunUsage;
@@ -1494,7 +1097,6 @@ async function sendMessage() {
         setStatus(false, 'Sẵn sàng');
         updateTopbarMeta(null, currentRunUsage);
       }
-
       if (data.type === 'stopped') {
         completed = true;
         currentRunUsage = data.usage || currentRunUsage;
@@ -1510,7 +1112,6 @@ async function sendMessage() {
       if (value) parseChunk(decoder.decode(value, { stream: !done }));
       if (done) break;
     }
-
     parseChunk(decoder.decode());
 
     if (!completed) {
@@ -1533,8 +1134,7 @@ async function sendMessage() {
     setStopButtonVisible(false);
     document.getElementById('sendBtn').disabled = false;
     await loadChatList();
-
-    const history = await (await fetch('/api/history')).json();
+    const history = await (await fetch(`/api/history?user_profile=${encodeURIComponent(currentProfile)}`)).json();
     const chat = history.find(c => c.id === currentChatId);
     if (chat) {
       document.getElementById('chatTitle').textContent = chat.title;
@@ -1544,131 +1144,262 @@ async function sendMessage() {
   }
 }
 
-// ── UI helpers ────────────────────────────────────────────────────────────
-function appendMessage(role, content, time, scroll, metadata = null) {
+// ── Conversation rendering (single column) ──────────────────────────────────
+function appendMessage(role, content, time, scroll = true, metadata = null) {
   const m = document.getElementById('messages');
+  if (!m) return;
   const isUser = role === 'user';
   const div = document.createElement('div');
-  div.className = 'msg ' + (isUser ? 'user' : 'ai');
-  div.innerHTML = `
-    <div class="msg-avatar">${isUser ? '👤' : '🤖'}</div>
-    <div class="msg-body">
-      <div class="msg-bubble">${escHtml(content)}</div>
-      <div class="msg-time">${time || ''}</div>
-    </div>`;
+  div.className = 'turn ' + (isUser ? 'user' : 'ai');
+
+  if (isUser) {
+    div.innerHTML = `
+      <div class="turn-body">
+        <div class="bubble user-bubble">${escHtml(content)}</div>
+        <div class="time">${escHtml(time || '')}</div>
+      </div>`;
+  } else {
+    let metaBlock = '';
+    if (metadata && metadata.usage) {
+      const waiting = metadata.state === 'needs_input';
+      metaBlock = `
+        <div class="reasoning collapsed">
+          <button class="reasoning-head done" type="button" onclick="toggleReasoning(this)">
+            <span class="reasoning-title">Chi phí &amp; token của lượt này</span>${CHEVRON}
+          </button>
+          <div class="reasoning-body"><div class="msg-meta" style="display:flex">${renderUsageHtml(metadata.usage, waiting, metadata.state)}</div></div>
+        </div>`;
+    }
+    div.innerHTML = `
+      <div class="avatar">${AI_AVATAR}</div>
+      <div class="msg-body turn-body">
+        <div class="bubble ai-bubble">${escHtml(content)}</div>
+        ${metaBlock}
+        <div class="time">${escHtml(time || '')}</div>
+      </div>`;
+  }
   m.appendChild(div);
   if (scroll) m.scrollTop = m.scrollHeight;
 }
 
 function appendThinking(id) {
-  const feed = ensureActivityFeed();
-  if (!feed) return;
+  const m = document.getElementById('messages');
+  if (!m) return;
   const div = document.createElement('div');
-  div.className = 'activity-card';
+  div.className = 'turn ai';
   div.id = 'thinking-' + id;
   div.innerHTML = `
-    <div class="msg-avatar">🤖</div>
-    <div class="msg-body" style="width: 100%">
-      <div class="msg-status">
-        <span id="status-${id}">Đang xử lý...</span>
-        <div class="thinking-dots"><span></span><span></span><span></span></div>
+    <div class="avatar">${AI_AVATAR}</div>
+    <div class="msg-body turn-body">
+      <div class="reasoning" id="reasoning-${id}">
+        <button class="reasoning-head" type="button" onclick="toggleReasoning(this)">
+          <span class="reasoning-spinner"></span>
+          <span class="reasoning-title" id="status-${id}">Đang khởi tạo…</span>
+          <span class="thinking-dots"><span></span><span></span><span></span></span>
+          ${CHEVRON}
+        </button>
+        <div class="reasoning-body"><div class="run-timeline" id="timeline-${id}"></div></div>
       </div>
-      <div class="msg-steps" id="steps-${id}"></div>
-      <div class="msg-bubble" id="bubble-${id}" style="display:none"></div>
+      <div class="bubble ai-bubble" id="bubble-${id}" style="display:none"></div>
       <div class="msg-meta" id="meta-${id}"></div>
-      <div class="msg-time" id="time-${id}"></div>
+      <div class="time" id="time-${id}"></div>
     </div>`;
-  feed.appendChild(div);
-  feed.scrollTop = feed.scrollHeight;
-  setActivityMeta('Đang chạy');
+  m.appendChild(div);
+  m.scrollTop = m.scrollHeight;
 }
 
-function updateThinkingStatus(id, text) {
+const activeRunTracks = new Map();
+
+function resolveRunner(data) {
+  if (data.runner === 'workflow' || data.runner === 'agent') return data.runner;
+  const phase = data.phase || '';
+  if (phase.startsWith('workflow') || phase === 'orchestrator_workflow_done') return 'workflow';
+  if (phase === 'running' || phase === 'orchestrator_agent_done' || phase === 'vision') return 'agent';
+  if (phase === 'orchestrator_decision') {
+    const t = (data.text || '').toLowerCase();
+    if (t.includes('workflow')) return 'workflow';
+    if (t.includes('ai')) return 'agent';
+  }
+  return null;
+}
+
+function ensureRunTrack(aiId) {
+  if (!activeRunTracks.has(aiId)) {
+    activeRunTracks.set(aiId, { runner: null, stepsEl: null, phaseTitle: '' });
+  }
+  return activeRunTracks.get(aiId);
+}
+
+function beginRunPhase(aiId, runner, title) {
+  const timeline = document.getElementById('timeline-' + aiId);
+  if (!timeline || !runner) return;
+  const track = ensureRunTrack(aiId);
+  const phase = document.createElement('div');
+  phase.className = `run-phase run-phase--${runner}`;
+  const badge = runner === 'workflow' ? 'Workflow' : 'AI';
+  phase.innerHTML = `
+    <div class="run-phase-head">
+      <span class="run-phase-badge">${badge}</span>
+      <span class="run-phase-title">${escHtml(title || (runner === 'workflow' ? 'Đang chạy workflow đã học' : 'AI đang xử lý'))}</span>
+    </div>
+    <div class="run-phase-steps"></div>`;
+  timeline.appendChild(phase);
+  track.runner = runner;
+  track.stepsEl = phase.querySelector('.run-phase-steps');
+  track.phaseTitle = title || '';
+  const reasoning = document.getElementById('reasoning-' + aiId);
+  if (reasoning) {
+    reasoning.classList.remove('run-mode--workflow', 'run-mode--agent');
+    reasoning.classList.add(`run-mode--${runner}`);
+  }
+  const body = timeline.closest('.reasoning-body');
+  if (body) body.scrollTop = body.scrollHeight;
+}
+
+function ensureRunPhase(aiId, runner, title) {
+  if (!runner) return;
+  const track = ensureRunTrack(aiId);
+  if (track.runner !== runner || !track.stepsEl) {
+    beginRunPhase(aiId, runner, title);
+    return;
+  }
+  if (title && title !== track.phaseTitle) {
+    const titleEl = track.stepsEl.closest('.run-phase')?.querySelector('.run-phase-title');
+    if (titleEl) titleEl.textContent = title;
+    track.phaseTitle = title;
+  }
+}
+
+function renderStepHint(text, runner) {
+  const el = document.getElementById('stepHint');
+  if (!el) return;
+  if (!runner) {
+    el.textContent = text || '';
+    return;
+  }
+  const pillClass = runner === 'workflow' ? 'run-pill--workflow' : 'run-pill--agent';
+  const pillLabel = runner === 'workflow' ? 'Workflow' : 'AI';
+  el.innerHTML = `<span class="run-pill ${pillClass}">${pillLabel}</span><span>${escHtml(text || '')}</span>`;
+}
+
+function updateThinkingStatus(id, text, runner = null) {
   const statusEl = document.getElementById('status-' + id);
-  if (statusEl) statusEl.textContent = text;
-  setActivityMeta(text);
+  if (!statusEl) return;
+  if (runner) {
+    const pillClass = runner === 'workflow' ? 'run-pill--workflow' : 'run-pill--agent';
+    const pillLabel = runner === 'workflow' ? 'Workflow' : 'AI';
+    statusEl.innerHTML = `<span class="run-pill ${pillClass}">${pillLabel}</span> ${escHtml(text || '')}`;
+  } else {
+    statusEl.textContent = text;
+  }
 }
 
 function updateThinkingMeta(id, usage, waiting = false) {
   const metaEl = document.getElementById('meta-' + id);
   if (!metaEl || !usage) return;
   metaEl.innerHTML = renderUsageHtml(usage, waiting);
-  metaEl.style.display = 'block';
-  setActivityMeta(waiting ? 'Chờ bạn trả lời' : 'Đang cập nhật');
+  metaEl.style.display = 'flex';
 }
 
-function appendStep(id, step, action, goal, evaluation, memory) {
-  const stepsEl = document.getElementById('steps-' + id);
+function appendPhaseDone(id, text, phase) {
+  const timeline = document.getElementById('timeline-' + id);
+  if (!timeline) return;
+  const div = document.createElement('div');
+  div.className = 'run-phase-summary';
+  const preview = (text || '').trim();
+  const short = preview.length > 220 ? preview.slice(0, 220) + '…' : preview;
+  div.innerHTML = `
+    <span class="run-phase-summary-label">✓ Pha ${phase ?? '?'} hoàn tất — đang chạy bước tiếp theo</span>
+    ${short ? `<span>${escHtml(short)}</span>` : ''}`;
+  timeline.appendChild(div);
+  activeRunTracks.delete(id);
+  const body = timeline.closest('.reasoning-body');
+  if (body) body.scrollTop = body.scrollHeight;
+  updateThinkingStatus(id, `Pha ${phase ?? '?'} xong · đang tiếp tục...`);
+}
+
+function appendStep(id, step, action, goal, evaluation, memory, runner = 'agent') {
+  const track = ensureRunTrack(id);
+  if (!track.stepsEl) ensureRunPhase(id, runner, null);
+  const stepsEl = track.stepsEl;
   if (!stepsEl) return;
-
-  stepsEl.style.display = 'block';
-
   const item = document.createElement('div');
-  item.className = 'step-item';
+  const mod = runner === 'workflow' ? 'workflow' : 'agent';
+  item.className = `step-item step-item--${mod}`;
   item.innerHTML = `
-    <div class="step-num">#${step ?? '?'}</div>
+    <div class="step-num">${step ?? '?'}</div>
     <div class="step-main">
       <div class="step-action">${escHtml(action || 'đang phân tích')}</div>
-      ${goal ? `<div class="step-goal">🎯 Mục tiêu: ${escHtml(goal)}</div>` : ''}
-      ${evaluation ? `<div class="step-eval">📝 Đánh giá: ${escHtml(evaluation)}</div>` : ''}
-      ${memory ? `<div class="step-memory">🧠 Ghi nhớ: ${escHtml(memory)}</div>` : ''}
+      ${goal ? `<div class="step-goal">🎯 ${escHtml(goal)}</div>` : ''}
+      ${evaluation ? `<div class="step-eval">📝 ${escHtml(evaluation)}</div>` : ''}
+      ${memory ? `<div class="step-memory">🧠 ${escHtml(memory)}</div>` : ''}
     </div>`;
-
   stepsEl.appendChild(item);
-  stepsEl.scrollTop = stepsEl.scrollHeight;
-  const feed = document.getElementById('activityFeed');
-  if (feed) feed.scrollTop = feed.scrollHeight;
+  const body = stepsEl.closest('.reasoning-body');
+  if (body) body.scrollTop = body.scrollHeight;
+  const m = document.getElementById('messages');
+  if (m) m.scrollTop = m.scrollHeight;
 }
 
 function finishThinking(id, text, finalStatus, usage = null, waiting = false) {
-  updateThinkingStatus(id, finalStatus || 'Hoàn tất');
+  const timeline = document.getElementById('timeline-' + id);
+  let wfSteps = 0;
+  let aiSteps = 0;
+  if (timeline) {
+    timeline.querySelectorAll('.run-phase--workflow .step-item').forEach(() => { wfSteps += 1; });
+    timeline.querySelectorAll('.run-phase--agent .step-item').forEach(() => { aiSteps += 1; });
+  }
+  const total = wfSteps + aiSteps;
+  const summaryParts = [];
+  if (wfSteps) summaryParts.push(`${wfSteps} workflow`);
+  if (aiSteps) summaryParts.push(`${aiSteps} AI`);
+  const summaryLabel = summaryParts.length ? summaryParts.join(' · ') : (finalStatus || 'Hoàn tất');
+  updateThinkingStatus(id, summaryLabel);
 
   const thinkingEl = document.getElementById('thinking-' + id);
   if (!thinkingEl) return;
 
+  const reasoning = document.getElementById('reasoning-' + id);
+  if (reasoning) {
+    reasoning.classList.add('done', 'collapsed');
+    reasoning.classList.remove('run-mode--workflow', 'run-mode--agent');
+    const titleEl = thinkingEl.querySelector('.reasoning-title');
+    if (titleEl) {
+      titleEl.textContent = total
+        ? `Quá trình · ${total} bước (${summaryLabel})`
+        : (finalStatus || 'Hoàn tất');
+    }
+    if (!total && reasoning.parentElement) reasoning.style.display = 'none';
+  }
+  activeRunTracks.delete(id);
   const dots = thinkingEl.querySelector('.thinking-dots');
   if (dots) dots.remove();
 
   const bubble = document.getElementById('bubble-' + id);
-  if (bubble) {
-    bubble.style.display = 'block';
-    bubble.textContent = text;
-  }
+  if (bubble) { bubble.style.display = 'block'; bubble.textContent = text; }
 
   if (usage) updateThinkingMeta(id, usage, waiting);
 
   const timeEl = document.getElementById('time-' + id);
-  if (timeEl) {
-    timeEl.textContent = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  appendMessage('ai', text, timeEl?.textContent || '', true);
-  setActivityMeta(finalStatus || 'Hoàn tất');
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
   if (finalStatus === 'Hoàn tất' && currentChatId) {
     const msgBody = thinkingEl.querySelector('.msg-body');
-    if (msgBody) {
+    if (msgBody && !msgBody.querySelector('.feedback-card')) {
       const fbCard = document.createElement('div');
       fbCard.className = 'feedback-card';
       fbCard.innerHTML = `
-        <div class="feedback-text">💡 Bạn có hài lòng với kết quả thực thi này của AI?</div>
+        <div class="feedback-text">💡 Bạn đánh giá kết quả này thế nào? Đánh giá tốt giúp AI tự học để lần sau chạy nhanh &amp; rẻ hơn (không bắt buộc lưu quy trình).</div>
         <div class="feedback-actions" id="fb-actions-${id}">
-          <button class="btn-fb-like" onclick="showFeedbackSaveModal('${id}', '${currentChatId}')">👍 Hài lòng & Đóng gói</button>
-          <button class="btn-fb-dislike" onclick="submitDislikeFeedback('${id}', '${currentChatId}')">👎 Không hài lòng</button>
-        </div>
-      `;
+          <button class="btn-fb-like" onclick="submitRating('${id}', '${currentChatId}', true)">👍 Hài lòng</button>
+          <button class="btn-fb-dislike" onclick="submitRating('${id}', '${currentChatId}', false)">👎 Không hài lòng</button>
+          <button class="btn-fb-save" onclick="showFeedbackSaveModal('${id}', '${currentChatId}')">💾 Lưu quy trình</button>
+        </div>`;
       msgBody.appendChild(fbCard);
     }
   }
-
-  const feed = document.getElementById('activityFeed');
-  if (feed) feed.scrollTop = feed.scrollHeight;
-  document.getElementById('messages').scrollTop = 99999;
-}
-
-function renderMetadataHtml(metadata) {
-  if (!metadata?.usage) return '';
-  return `<div class="msg-meta" style="display:block">${renderUsageHtml(metadata.usage, metadata.state === 'needs_input', metadata.state)}</div>`;
+  const m = document.getElementById('messages');
+  if (m) m.scrollTop = m.scrollHeight;
 }
 
 function renderUsageHtml(usage, waiting = false, messageState = null) {
@@ -1684,18 +1415,14 @@ function renderUsageHtml(usage, waiting = false, messageState = null) {
       <span class="meta-chip">${formatInt(totals.total_tokens)} tok</span>
       <span class="meta-chip">${formatUsd(totals.cost_usd)}</span>
       <span class="meta-chip">${formatDuration(usage.elapsed_seconds || 0)}</span>
-    </div>
-  `);
-
+    </div>`);
   rows.push(`
     <div class="meta-row">
       <span class="meta-chip">Run ${escHtml(modelLabel(executor.requested_model))}</span>
       <span class="meta-chip">In ${formatInt(executor.input_tokens)}</span>
       <span class="meta-chip">Out ${formatInt(executor.output_tokens)}</span>
       <span class="meta-chip">Cache ${formatInt(executor.cached_tokens)}</span>
-    </div>
-  `);
-
+    </div>`);
   if (planner && planner.total_tokens > 0) {
     rows.push(`
       <div class="meta-row">
@@ -1703,96 +1430,68 @@ function renderUsageHtml(usage, waiting = false, messageState = null) {
         <span class="meta-chip">In ${formatInt(planner.input_tokens)}</span>
         <span class="meta-chip">Out ${formatInt(planner.output_tokens)}</span>
         <span class="meta-chip">Cache ${formatInt(planner.cached_tokens)}</span>
-      </div>
-    `);
+      </div>`);
   }
-
   rows.push(`
     <div class="meta-row">
       <span class="meta-chip">Tỷ giá ${formatRate(usage.exchange_rate?.usd_to_vnd)}</span>
       <span class="meta-chip">Bảng giá ${escHtml(usage.pricing_reference?.updated_at || '—')}</span>
       <span class="meta-chip">Bước ${usage.step || 0}</span>
-    </div>
-  `);
-
+    </div>`);
   if (waiting || usage.waiting_for_user) {
-    rows.push(`<div class="meta-note">Agent đã dừng lượt hiện tại và đang chờ chỉ dẫn tiếp theo của bạn.</div>`);
+    rows.push(`<div class="meta-note">⏳ Agent đã dừng lượt hiện tại và đang chờ chỉ dẫn tiếp theo của bạn.</div>`);
   } else if (messageState === 'stopped') {
-    rows.push(`<div class="meta-note">Task đã bị dừng thủ công — trình duyệt vẫn mở, bạn có thể gửi lệnh mới.</div>`);
+    rows.push(`<div class="meta-note">⏹ Task đã bị dừng thủ công — trình duyệt vẫn mở, bạn có thể gửi lệnh mới.</div>`);
   }
-
   return rows.join('');
 }
 
 function createSseParser(onEvent) {
   let buffer = '';
-
   return chunk => {
     if (!chunk) return;
     buffer += chunk.replace(/\r\n/g, '\n');
-
     let boundary = buffer.indexOf('\n\n');
     while (boundary !== -1) {
       const rawEvent = buffer.slice(0, boundary);
       buffer = buffer.slice(boundary + 2);
-
-      const dataLines = rawEvent
-        .split('\n')
-        .filter(line => line.startsWith('data:'))
-        .map(line => line.slice(5).trimStart());
-
+      const dataLines = rawEvent.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart());
       if (dataLines.length) {
-        try {
-          onEvent(JSON.parse(dataLines.join('\n')));
-        } catch {}
+        try { onEvent(JSON.parse(dataLines.join('\n'))); } catch {}
       }
-
       boundary = buffer.indexOf('\n\n');
     }
   };
 }
 
-function setStatus(loading, text) {
+function setStatus(loading, text, runner = null) {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
-  dot.style.background = loading ? '#ffd166' : 'var(--accent)';
-  dot.style.animation = loading ? 'pulse 0.6s infinite' : 'pulse 2s infinite';
-  txt.textContent = text;
+  if (dot) {
+    if (loading && runner === 'workflow') dot.style.background = 'var(--wf-color)';
+    else if (loading && runner === 'agent') dot.style.background = 'var(--ai-color)';
+    else dot.style.background = loading ? 'var(--warn)' : 'var(--accent)';
+    dot.style.animation = loading ? 'pulse 0.6s infinite' : 'pulse 2s infinite';
+  }
+  if (txt) txt.textContent = text;
 }
 
 function autoResize(el) {
   el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  el.style.height = Math.min(el.scrollHeight, 168) + 'px';
 }
-
 function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
-
 function useSuggestion(el) {
-  document.getElementById('taskInput').value = el.textContent;
+  document.getElementById('taskInput').value = el.textContent.trim();
   sendMessage();
 }
 
-function formatInt(value) {
-  return Number(value || 0).toLocaleString('vi-VN');
-}
-
-function formatUsd(value) {
-  return `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 6 })} USD`;
-}
-
-function formatVnd(value) {
-  return `${Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 })} ₫`;
-}
-
-function formatRate(value) {
-  return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' VND/USD';
-}
-
+function formatInt(value) { return Number(value || 0).toLocaleString('vi-VN'); }
+function formatUsd(value) { return `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 6 })} USD`; }
+function formatVnd(value) { return `${Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 })} ₫`; }
+function formatRate(value) { return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' VND/USD'; }
 function formatDuration(totalSeconds) {
   const seconds = Math.max(Number(totalSeconds || 0), 0);
   const hours = Math.floor(seconds / 3600);
@@ -1802,60 +1501,181 @@ function formatDuration(totalSeconds) {
   if (minutes) return `${minutes}m ${String(secs).padStart(2, '0')}s`;
   return `${secs}s`;
 }
-
 function escHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ── Profiles & Workflows ──────────────────────────────────────────────────
+// ── Profiles & Workflows ────────────────────────────────────────────────────
 async function loadProfiles() {
   const res = await fetch('/api/profiles');
   const data = await res.json();
   const profiles = data.profiles || [];
+  profileOptions = profiles.map(p => (typeof p === 'string' ? { name: p, type: 'custom', profile_directory: 'Default' } : p));
   const select = document.getElementById('userProfile');
   if (select) {
-    select.innerHTML = profiles.map(p => `
-      <option value="${escHtml(p)}">${escHtml(p)}</option>
-    `).join('');
+    select.innerHTML = profileOptions.map(p => {
+      const typeLabel = p.type === 'system' ? 'Chrome' : 'Agent';
+      return `<option value="${escHtml(p.name)}">${escHtml(p.name)} · ${typeLabel}</option>`;
+    }).join('');
+    const profileNames = profileOptions.map(p => p.name);
+    if (profileNames.length > 0 && !profileNames.includes(currentProfile)) currentProfile = profileNames[0];
     select.value = currentProfile;
   }
+  updateProfileWorkspaceMeta();
 }
 
-function changeProfile() {
+async function changeProfile() {
   const select = document.getElementById('userProfile');
-  if (select) {
-    currentProfile = select.value;
-  }
+  if (select) currentProfile = select.value;
+  updateProfileWorkspaceMeta();
+  await loadWorkflows();
+  await loadChatList();
+  await newChat();
+  updateTopbarMeta();
 }
+
+function currentProfileConfig() {
+  return profileOptions.find(p => p.name === currentProfile) || { name: currentProfile, type: 'custom' };
+}
+function profileTypeLabel(type) {
+  if (type === 'system') return 'Chrome có sẵn';
+  if (type === 'custom') return 'Agent độc lập';
+  return type || 'Hồ sơ';
+}
+
+function updateProfileWorkspaceMeta(summary = null) {
+  const profile = currentProfileConfig();
+  const meta = document.getElementById('profileWorkspaceMeta');
+  const badge = document.getElementById('activeProfileBadge');
+  const wfProfileName = document.getElementById('wfProfileName');
+  const workflowCount = summary?.workflow_count ?? 0;
+  const domainCount = summary?.domain_count ?? 0;
+  const detail = profile.type === 'system'
+    ? `${profileTypeLabel(profile.type)} · ${profile.profile_directory || 'Default'}`
+    : profileTypeLabel(profile.type);
+  if (meta) meta.textContent = `${detail} · ${workflowCount} quy trình · ${domainCount} domain`;
+  if (badge) { badge.textContent = `Hồ sơ: ${currentProfile}`; badge.title = `${currentProfile} (${detail})`; }
+  if (wfProfileName) { wfProfileName.textContent = currentProfile; wfProfileName.title = currentProfile; }
+}
+
+function renderProfileMenu() {
+  const list = document.getElementById('profileMenuList');
+  if (!list) return;
+  if (!profileOptions || profileOptions.length === 0) {
+    list.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px;">Chưa có hồ sơ nào</div>';
+    return;
+  }
+  list.innerHTML = profileOptions.map(p => {
+    const active = p.name === currentProfile;
+    const typeLabel = p.type === 'system' ? `Chrome · ${escHtml(p.profile_directory || 'Default')}` : 'Agent độc lập';
+    return `<button type="button" class="profile-menu-item${active ? ' active' : ''}" onclick="selectProfileFromMenu('${escHtml(p.name).replace(/'/g, "\\'")}')">
+      <span class="pm-dot"></span>
+      <span class="pm-body"><span class="pm-name">${escHtml(p.name)}</span><span class="pm-type">${typeLabel}</span></span>
+      <svg class="pm-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>`;
+  }).join('');
+}
+
+function toggleProfileMenu(event) {
+  if (event) event.stopPropagation();
+  const sw = document.querySelector('.profile-switcher');
+  const btn = document.getElementById('profileSwitcherBtn');
+  if (!sw) return;
+  const willOpen = !sw.classList.contains('open');
+  if (willOpen) renderProfileMenu();
+  sw.classList.toggle('open', willOpen);
+  if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+function closeProfileMenu() {
+  const sw = document.querySelector('.profile-switcher');
+  const btn = document.getElementById('profileSwitcherBtn');
+  if (sw) sw.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+function selectProfileFromMenu(name) {
+  closeProfileMenu();
+  if (name === currentProfile) return;
+  const select = document.getElementById('userProfile');
+  if (select) select.value = name;
+  currentProfile = name;
+  changeProfile();
+}
+
+document.addEventListener('click', (e) => {
+  const sw = document.querySelector('.profile-switcher');
+  if (sw && sw.classList.contains('open') && !sw.contains(e.target)) closeProfileMenu();
+});
 
 function createProfile() {
   document.getElementById('profileModal').style.display = 'flex';
   document.getElementById('newProfileName').value = '';
-  document.getElementById('newProfileName').focus();
+  switchProfileTab('independent');
+  setTimeout(() => document.getElementById('newProfileName').focus(), 50);
 }
-
 function closeProfileModal() {
   document.getElementById('profileModal').style.display = 'none';
 }
 
-async function submitCreateProfile() {
-  const input = document.getElementById('newProfileName');
-  const name = input.value.trim();
-  if (!name) {
-    alert('Vui lòng nhập tên hồ sơ');
-    return;
+function switchProfileTab(tab) {
+  activeProfileTab = tab;
+  const tabInd = document.getElementById('tabIndependent');
+  const tabSys = document.getElementById('tabSystem');
+  const divInd = document.getElementById('divIndependentProfile');
+  const divSys = document.getElementById('divSystemProfile');
+  if (tab === 'independent') {
+    tabInd.classList.add('active'); tabSys.classList.remove('active');
+    divInd.style.display = 'block'; divSys.style.display = 'none';
+  } else {
+    tabSys.classList.add('active'); tabInd.classList.remove('active');
+    divInd.style.display = 'none'; divSys.style.display = 'block';
+    loadSystemChromeProfiles();
   }
-  const res = await fetch('/api/profiles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
+}
+
+async function loadSystemChromeProfiles() {
+  const select = document.getElementById('systemChromeProfileSelect');
+  if (!select) return;
+  select.innerHTML = '<option value="">Đang quét hồ sơ Chrome trên máy...</option>';
+  try {
+    const res = await fetch('/api/system_chrome_profiles');
+    const data = await res.json();
+    systemProfilesList = data.profiles || [];
+    if (systemProfilesList.length === 0) {
+      const searched = (data.searched_paths || []).join(' | ');
+      const suffix = searched ? ` - đã quét: ${searched}` : '';
+      select.innerHTML = `<option value="">Không tìm thấy profile Chrome nào${escHtml(suffix)}</option>`;
+      return;
+    }
+    select.innerHTML = systemProfilesList.map((p, idx) => `<option value="${idx}">${escHtml(p.name)} (${escHtml(p.directory)})</option>`).join('');
+  } catch (err) {
+    select.innerHTML = '<option value="">Lỗi tải danh sách profile</option>';
+  }
+}
+
+async function submitCreateProfile() {
+  let name = '';
+  let payload = {};
+  if (activeProfileTab === 'independent') {
+    const input = document.getElementById('newProfileName');
+    name = input.value.trim();
+    if (!name) { alert('Vui lòng nhập tên hồ sơ'); return; }
+    payload = { name, type: 'custom' };
+  } else {
+    const select = document.getElementById('systemChromeProfileSelect');
+    const idx = select.value;
+    if (idx === "") { alert('Không có hồ sơ Chrome nào được chọn'); return; }
+    const prof = systemProfilesList[idx];
+    name = `${prof.name} (${prof.directory})`;
+    payload = { name, type: 'system', user_data_dir: prof.user_data_dir, profile_directory: prof.directory };
+  }
+  const res = await fetch('/api/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   const data = await res.json();
   if (data.ok) {
     currentProfile = name;
     await loadProfiles();
+    await loadWorkflows();
     closeProfileModal();
   } else {
     alert(data.error || 'Có lỗi xảy ra');
@@ -1863,9 +1683,10 @@ async function submitCreateProfile() {
 }
 
 async function loadWorkflows() {
-  const res = await fetch('/api/site_workflows');
+  const res = await fetch(`/api/site_workflows?user_profile=${encodeURIComponent(currentProfile)}`);
   const data = await res.json();
   savedWorkflows = data.site_profiles || {};
+  updateProfileWorkspaceMeta(data.summary || null);
   renderWorkflows();
 }
 
@@ -1873,36 +1694,30 @@ function renderWorkflows() {
   const list = document.getElementById('workflowsList');
   const countEl = document.getElementById('wfCount');
   if (!list) return;
-
   let count = 0;
   const itemsHtml = [];
-
   for (const domain in savedWorkflows) {
     const wfs = savedWorkflows[domain] || [];
     wfs.forEach(wf => {
       count++;
-      const wfScope = (wf.metadata && wf.metadata.workflow_scope === 'specific') ? 'Cu the' : 'Tong quat';
+      const wfScope = (wf.metadata && wf.metadata.workflow_scope === 'specific') ? 'Cụ thể' : 'Tổng quát';
+      const learned = wf.metadata && wf.metadata.auto_learned ? ' · Tự học' : '';
       itemsHtml.push(`
-        <div class="chat-item" onclick="runWorkflow('${escHtml(domain)}', '${escHtml(wf.workflow_id)}')" style="padding: 8px 10px; margin-bottom: 4px;">
-          <div class="chat-item-text" style="color: var(--text); flex: 1;">
-            <div style="font-weight: 600; font-size: 11px; color: var(--accent);">${escHtml(domain)} · ${wfScope}</div>
-            <div style="font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escHtml(wf.workflow_name || wf.prompt_template)}">
-              ${escHtml(wf.workflow_name || 'Kịch bản')}
-            </div>
+        <div class="chat-item" onclick="runWorkflow('${escHtml(domain)}', '${escHtml(wf.workflow_id)}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex:none; color:var(--accent); opacity:.85;"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <div class="chat-item-text" style="flex:1;">
+            <div style="font-size:10px; color:var(--muted); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escHtml(domain)} · ${wfScope}${learned}</div>
+            <div style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escHtml(wf.workflow_name || wf.prompt_template)}">${escHtml(wf.workflow_name || 'Quy trình')}</div>
           </div>
-          <button class="chat-item-del" onclick="deleteWorkflow(event, '${escHtml(domain)}', '${escHtml(wf.workflow_id)}')" title="Xóa kịch bản">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
+          <button class="chat-item-del" onclick="deleteWorkflow(event, '${escHtml(domain)}', '${escHtml(wf.workflow_id)}')" title="Xóa quy trình">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
-        </div>
-      `);
+        </div>`);
     });
   }
-
   if (countEl) countEl.textContent = count;
   if (itemsHtml.length === 0) {
-    list.innerHTML = `<div style="padding:12px 8px; font-size:10.5px; color:var(--muted); text-align:center;">Chưa học quy trình nào</div>`;
+    list.innerHTML = `<div style="padding:14px 10px; font-size:11.5px; color:var(--muted); text-align:center; line-height:1.6;">Hồ sơ này chưa học quy trình nào.<br>Hoàn thành một task rồi bấm 👍 hoặc 💾 để dạy AI.</div>`;
   } else {
     list.innerHTML = itemsHtml.join('');
   }
@@ -1910,26 +1725,17 @@ function renderWorkflows() {
 
 async function deleteWorkflow(e, domain, workflowId) {
   e.stopPropagation();
-  if (!confirm('Bạn có chắc chắn muốn xóa kịch bản này?')) return;
-  const res = await fetch(`/api/site_workflows/${domain}/${workflowId}`, {
-    method: 'DELETE'
-  });
+  if (!confirm('Bạn có chắc chắn muốn xóa quy trình này?')) return;
+  const res = await fetch(`/api/site_workflows/${domain}/${workflowId}`, { method: 'DELETE' });
   const data = await res.json();
-  if (data.ok) {
-    await loadWorkflows();
-  } else {
-    alert(data.error || 'Có lỗi xảy ra');
-  }
+  if (data.ok) await loadWorkflows();
+  else alert(data.error || 'Có lỗi xảy ra');
 }
-
-let activeWfDomain = null;
-let activeWfId = null;
 
 function runWorkflow(domain, workflowId) {
   const domainWfs = savedWorkflows[domain] || [];
   const wf = domainWfs.find(item => item.workflow_id === workflowId);
-  if (!wf) return;
-
+  if (!wf) { alert('Không tìm thấy quy trình trong hồ sơ hiện tại.'); return; }
   activeWfDomain = domain;
   activeWfId = workflowId;
   activeRunWf = wf;
@@ -1938,37 +1744,30 @@ function runWorkflow(domain, workflowId) {
   const modalTitle = document.getElementById('modalWfTitle');
   const modalTemplate = document.getElementById('modalWfTemplate');
   const modalInputs = document.getElementById('modalWfInputs');
-
   if (!modal || !modalTitle || !modalTemplate || !modalInputs) return;
 
-  modalTitle.textContent = `Chạy: ${wf.workflow_name || 'Kịch bản'}`;
+  modalTitle.textContent = `Chạy: ${wf.workflow_name || 'Quy trình'}`;
   modalTemplate.textContent = wf.prompt_template || '';
 
   const vars = wf.variables || [];
   const schema = (wf.metadata && wf.metadata.input_schema) || [];
-
   modalInputs.innerHTML = '';
   if (vars.length === 0) {
-    modalInputs.innerHTML = `<div style="font-size:11px; color:var(--muted);">Kịch bản này không cần tham số đầu vào.</div>`;
+    modalInputs.innerHTML = `<div style="font-size:12px; color:var(--muted);">Quy trình này không cần tham số đầu vào.</div>`;
   } else {
     vars.forEach(v => {
       const info = schema.find(s => s.name === v) || {};
       const label = info.label || v;
       const type = info.type === 'password' ? 'password' : 'text';
       const placeholder = info.placeholder || '';
-
       const div = document.createElement('div');
       div.style.display = 'flex';
       div.style.flexDirection = 'column';
-      div.style.gap = '4px';
-      div.innerHTML = `
-        <label style="font-size:11px; color:var(--muted); font-weight:500;">${escHtml(label)}:</label>
-        <input type="${type}" id="wf-var-${v}" class="feedback-save-input" placeholder="${escHtml(placeholder)}" />
-      `;
+      div.style.gap = '5px';
+      div.innerHTML = `<label class="modal-label" style="margin:0;">${escHtml(label)}</label><input type="${type}" id="wf-var-${v}" class="feedback-save-input" placeholder="${escHtml(placeholder)}" />`;
       modalInputs.appendChild(div);
     });
   }
-
   modal.style.display = 'flex';
 }
 
@@ -1981,89 +1780,64 @@ function closeWorkflowModal() {
 
 function executeWorkflowFromModal() {
   if (!activeRunWf) return;
-
   const vars = activeRunWf.variables || [];
   let taskPrompt = activeRunWf.prompt_template || '';
   let missing = false;
-
   vars.forEach(v => {
     const input = document.getElementById(`wf-var-${v}`);
     if (input) {
       const val = input.value.trim();
-      if (!val) {
-        alert(`Vui lòng nhập giá trị cho: ${v}`);
-        missing = true;
-        return;
-      }
+      if (!val) { alert(`Vui lòng nhập giá trị cho: ${v}`); missing = true; return; }
       taskPrompt = taskPrompt.replace(new RegExp(`{${v}}`, 'g'), val);
     }
   });
-
   if (missing) return;
-
   pendingWorkflowId = activeRunWf.workflow_id;
   closeWorkflowModal();
   document.getElementById('taskInput').value = taskPrompt;
   sendMessage();
 }
 
-// ── Feedback System ───────────────────────────────────────────────────────
-let activeFbAiId = null;
-let activeFbChatId = null;
-
+// ── Feedback System ─────────────────────────────────────────────────────────
 function showFeedbackSaveModal(aiId, chatId) {
   activeFbAiId = aiId;
   activeFbChatId = chatId;
-
   const fbActions = document.getElementById(`fb-actions-${aiId}`);
   if (!fbActions) return;
-
   fbActions.innerHTML = `
-    <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
-      <div style="font-size:11px; color:var(--muted);">Đặt tên cho quy trình này để lưu lại:</div>
-      <div style="display:flex; gap:10px; align-items:center; font-size:11px; color:var(--text);">
-        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-          <input type="radio" name="fb-wf-mode-${aiId}" value="general" checked />
-          <span>Tong quat</span>
-        </label>
-        <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
-          <input type="radio" name="fb-wf-mode-${aiId}" value="specific" />
-          <span>Cu the</span>
-        </label>
+    <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+      <div style="font-size:11.5px; color:var(--muted);">Đặt tên cho quy trình này để lưu lại:</div>
+      <div style="display:flex; gap:14px; align-items:center; font-size:12px; color:var(--text);">
+        <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="radio" name="fb-wf-mode-${aiId}" value="general" checked /><span>Tổng quát</span></label>
+        <label style="display:flex; align-items:center; gap:5px; cursor:pointer;"><input type="radio" name="fb-wf-mode-${aiId}" value="specific" /><span>Cụ thể</span></label>
       </div>
-      <div style="display:flex; gap:6px;">
+      <div style="display:flex; gap:7px;">
         <input type="text" id="fb-wf-name-${aiId}" class="feedback-save-input" placeholder="Ví dụ: Đăng nhập Facebook, Mua vé..." style="flex:1;" />
-        <button class="btn-send" style="width:auto; padding:0 12px; height:28px; border-radius:6px; color:var(--btn-send-icon-inv, #0d0f12); font-weight:600; font-size:11px;" onclick="submitLikeFeedback('${aiId}', '${chatId}')">Lưu & Đóng gói</button>
-        <button class="btn-new" style="width:auto; padding:0 10px; height:28px; border-radius:6px; font-size:11px;" onclick="cancelFeedback('${aiId}')">Hủy</button>
+        <button class="btn-primary" style="padding:8px 14px; font-size:12px;" onclick="submitLikeFeedback('${aiId}', '${chatId}')">Lưu</button>
+        <button class="btn-ghost" style="padding:8px 12px; font-size:12px;" onclick="cancelFeedback('${aiId}')">Hủy</button>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-function cancelFeedback(aiId) {
+function restoreFeedbackActions(aiId) {
   const fbActions = document.getElementById(`fb-actions-${aiId}`);
   if (!fbActions) return;
   fbActions.innerHTML = `
-    <button class="btn-fb-like" onclick="showFeedbackSaveModal('${aiId}', '${currentChatId}')">👍 Hài lòng & Đóng gói</button>
-    <button class="btn-fb-dislike" onclick="submitDislikeFeedback('${aiId}', '${currentChatId}')">👎 Không hài lòng</button>
-  `;
+    <button class="btn-fb-like" onclick="submitRating('${aiId}', '${currentChatId}', true)">👍 Hài lòng</button>
+    <button class="btn-fb-dislike" onclick="submitRating('${aiId}', '${currentChatId}', false)">👎 Không hài lòng</button>
+    <button class="btn-fb-save" onclick="showFeedbackSaveModal('${aiId}', '${currentChatId}')">💾 Lưu quy trình</button>`;
 }
+
+function cancelFeedback(aiId) { restoreFeedbackActions(aiId); }
 
 async function submitLikeFeedback(aiId, chatId) {
   const input = document.getElementById(`fb-wf-name-${aiId}`);
   const wfName = input ? input.value.trim() : '';
   const modeInput = document.querySelector(`input[name="fb-wf-mode-${aiId}"]:checked`);
   const workflowMode = modeInput ? modeInput.value : 'general';
-
   const res = await fetch(`/api/chat/${chatId}/feedback`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      satisfied: true,
-      workflow_name: wfName,
-      workflow_mode: workflowMode,
-      user_profile: currentProfile
-    })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'save', satisfied: true, workflow_name: wfName, workflow_mode: workflowMode, user_profile: currentProfile }),
   });
   const data = await res.json();
   if (data.ok) {
@@ -2075,21 +1849,29 @@ async function submitLikeFeedback(aiId, chatId) {
   }
 }
 
-async function submitDislikeFeedback(aiId, chatId) {
-  const res = await fetch(`/api/chat/${chatId}/feedback`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      satisfied: false,
-      user_profile: currentProfile
-    })
-  });
-  const data = await res.json();
-  if (data.ok) {
+// Lightweight rating (đánh giá) → AI tự học, KHÔNG bắt buộc lưu quy trình.
+async function submitRating(aiId, chatId, satisfied) {
+  const fbActions = document.getElementById(`fb-actions-${aiId}`);
+  if (fbActions) fbActions.innerHTML = `<div class="feedback-text">⏳ Đang ghi nhận đánh giá...</div>`;
+  try {
+    const res = await fetch(`/api/chat/${chatId}/feedback`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rate', satisfied, user_profile: currentProfile }),
+    });
+    const data = await res.json();
+    if (!data.ok) { restoreFeedbackActions(aiId); alert(data.error || 'Có lỗi xảy ra'); return; }
     const fbCard = document.querySelector(`#thinking-${aiId} .feedback-card`);
-    if (fbCard) fbCard.innerHTML = `<div class="feedback-text" style="color:var(--danger);">❌ Đã ghi nhận phản hồi không hài lòng của bạn.</div>`;
-  } else {
-    alert(data.error || 'Có lỗi xảy ra');
+    if (fbCard) {
+      const color = satisfied ? 'var(--accent)' : 'var(--danger)';
+      const icon = satisfied ? '✅' : '❌';
+      let html = `<div class="feedback-text" style="color:${color};">${icon} ${escHtml(data.message || 'Đã ghi nhận đánh giá.')}</div>`;
+      if (satisfied) html += `<div class="feedback-actions"><button class="btn-fb-save" onclick="showFeedbackSaveModal('${aiId}', '${chatId}')">💾 Lưu quy trình</button></div>`;
+      fbCard.innerHTML = html;
+    }
+    if (data.auto_learn && data.auto_learn.promoted) await loadWorkflows();
+  } catch (e) {
+    restoreFeedbackActions(aiId);
+    alert('Lỗi kết nối: ' + (e && e.message ? e.message : e));
   }
 }
 
